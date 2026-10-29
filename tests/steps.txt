@@ -1,4 +1,4 @@
-# the steps view, the sound view and the four knob pages; HOME is a held button (a tap = held, then released)
+# the steps view, the sound view and the knob pages (a shot on each page); HOME is a held button (a tap = held, then released)
 600 shot
 700 btn 12
 1500 shot
@@ -11,11 +11,18 @@
 3600 enc 4 -6
 3900 shot
 4000 enc 1 1
-4100 enc 1 1
 4300 shot
 4400 enc 1 1
-4600 shot
-5000 held 0x100
-5100 held 0
-5300 shot
-7000 end
+4700 shot
+4800 enc 1 1
+5100 shot
+5200 enc 1 1
+5500 shot
+5600 enc 1 1
+5900 shot
+6000 enc 1 1
+6300 shot
+6400 held 0x100
+6500 held 0
+6800 shot
+8000 end

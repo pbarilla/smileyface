@@ -5,7 +5,7 @@
 set -e
 cd "$(dirname "$0")/.."
 docker run --rm --platform linux/amd64 -v "$PWD":/w -w /w emscripten/emsdk:3.1.64 \
-    emcc firmware/src/smileyface.c -O2 -DSMILEY_HOST -DSMILEY_WEB -DAPP_VER="\"${APP_VER:-web}\"" -Ifirmware/src -Ifirmware/gen \
+    emcc firmware/src/smileyface.c -O2 -DSMILEY_HOST -DSMILEY_WEB -DQUICK_DEMO -DAPP_VER="\"${APP_VER:-web}\"" -Ifirmware/src -Ifirmware/gen \
     -sASYNCIFY -sASYNCIFY_STACK_SIZE=65536 -sINITIAL_MEMORY=33554432 -sMODULARIZE=1 -sEXPORT_NAME=Smileyface -sENVIRONMENT=web,node \
     -sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPU16,HEAP32 -sEXPORTED_FUNCTIONS=_main \
     -Wno-unused-function -o site/play/smileyface.js

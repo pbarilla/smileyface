@@ -64,10 +64,10 @@ int main(void)
             double sum = 0; uint32_t cnt = 0;
             int32_t pk = 0;
             reset();
-            for (i = 0; i < 20; i++) { seed = seed * 1664525u + 1013904223u; kp[i] = (uint8_t)((seed >> 12) % 32u); }
+            for (i = 0; i < 19; i++) { seed = seed * 1664525u + 1013904223u; kp[i] = (uint8_t)((seed >> 12) % 32u); }
             kn.wave = (uint8_t)(kn.wave & 1);
-            kn.len = (uint8_t)(1 + kn.len % 16);
-            for (i = 0; i < STEPS; i++) { seed = seed * 1664525u + 1013904223u; pat[i].note = (seed >> 9) % 4u ? (uint8_t)(24 + (seed >> 14) % 60u) : 0; pat[i].fl = (uint8_t)((seed >> 20) & 3u); }
+            plen[0] = (uint8_t)(1 + (seed >> 5) % 16u); pat_idx = 0;
+            for (i = 0; i < STEPS; i++) { seed = seed * 1664525u + 1013904223u; pats[0][i].note = (seed >> 9) % 4u ? (uint8_t)(24 + (seed >> 14) % 60u) : 0; pats[0][i].fl = (uint8_t)((seed >> 20) & 3u); }
             seed = seed * 1664525u + 1013904223u; seq_bpm = 60 + (seed >> 10) % 141u;
             seq_play();
             for (bl = 0; bl < 400; bl++) {
@@ -79,6 +79,31 @@ int main(void)
             if (fabs(sum / cnt) > 2500) { dcbad++; printf("run %u: dc %.0f\n", run, sum / cnt); }
         }
         printf("fuzz: %u rails, %u dc offsets\n", rails, dcbad);
+    }
+    /* 5: cueing: a pattern cued while another plays starts when that one ends; a chain plays in order; stopping forgets the chain */
+    {
+        uint32_t bl, trace[64], n = 0, last = 99, ok = 1;
+        reset();
+        memset(pats, 0, sizeof pats);
+        plen[0] = 4; plen[1] = 3; plen[2] = 2; pat_idx = 0;
+        for (n = 0; n < 4; n++) { pats[0][n].note = 40; pats[1][n].note = 50; pats[2][n].note = 60; }
+        seq_bpm = 120;
+        cue_clear();
+        seq_play();
+        n = 0;
+        for (bl = 0; bl < 700; bl++) {
+            memset(buf, 0, sizeof buf);
+            if (bl == 40) { cue_push(2); cue_push(1); cue_push(1); }      /* during the first loop of pattern 0 */
+            voice_render(buf, 256);
+            if (pat_idx != last && n < 64u) { trace[n++] = pat_idx; last = pat_idx; }
+        }
+        printf("cue chain: patterns played in order:");
+        for (bl = 0; bl < n; bl++) printf(" %u", trace[bl]);
+        printf("\n");
+        if (n != 3u || cue_w != cue_r || trace[0] != 0u || trace[1] != 2u || trace[2] != 1u || ok == 0u) { printf("FAIL: expected 0 2 1 and an empty chain\n"); return 1; }
+        seq_stop();
+        if (cue_w != cue_r) { printf("FAIL: stop kept the chain\n"); return 1; }
+        printf("cue ok\n");
     }
     return 0;
 }

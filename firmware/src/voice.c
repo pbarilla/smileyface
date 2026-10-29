@@ -16,12 +16,24 @@
 #define STEPS 16u
 enum { F_ACC = 1, F_SLD = 2 };
 typedef struct { uint8_t note, fl; } step_t;        /* note 0 = rest, else a MIDI note; fl: F_ACC, F_SLD */
-typedef struct { uint8_t cut, res, env, dec, acc, sld, drv, wave, adc, trk, atk, muf, tun, sub, swp, pol, fm, hir, swg, len; } knobs_t;   /* each 0..31 (wave 0 saw, 1 square; len 1..16); five pages of four */
+typedef struct { uint8_t cut, res, env, dec, acc, sld, drv, wave, adc, trk, atk, muf, tun, sub, swp, pol, fm, hir, swg; int8_t lvl; } knobs_t;   /* each 0..31 (wave: bit 0 square, bit 1 accents off; lvl: the output level, -24 .. +7 around 0) */
 #define KMAX 31
+#define PATS 16u                                    /* the patterns of a project */
 
-static step_t pat[STEPS];
-static knobs_t kn = {14, 20, 18, 12, 16, 14, 4, 0, 4, 12, 2, 0, 16, 0, 12, 31, 0, 0, 0, 16};
+static step_t pats[PATS][STEPS];
+static uint8_t plen[PATS];                          /* each pattern's length, 1..16 */
+static volatile uint32_t pat_idx;                   /* the pattern playing (and being written) */
+static knobs_t kn = {14, 20, 18, 12, 16, 14, 4, 0, 4, 12, 2, 0, 16, 0, 12, 31, 0, 0, 0, 0};
 static volatile uint32_t seq_run, seq_step = STEPS - 1u, seq_bpm = 126;
+/* patterns cued to play next, each when the one before ends (the main loop pushes, the audio pops) */
+#define CUEQ 8u
+static volatile uint8_t cue_q[CUEQ];
+static volatile uint32_t cue_w, cue_r;
+static void cue_push(uint32_t p) { if (cue_w - cue_r < CUEQ) { cue_q[cue_w % CUEQ] = (uint8_t)p; cue_w++; } }
+static void cue_clear(void) { cue_r = cue_w; }
+/* switches held from the main loop (the FX layer, ENV in PLAY) */
+static volatile uint32_t fx_acc, fx_kill, fx_drv, fx_res, fx_sld;
+static volatile int32_t fx_oct;
 static volatile uint32_t cpu_max;
 static volatile int32_t env_vis;                    /* the filter envelope as the screen sees it, Q15 */
 
@@ -47,7 +59,7 @@ typedef struct {
     uint32_t ph, ph2, incT;                         /* oscillator phases, the step now */
     int32_t p, tp;                                  /* pitch now and wanted, in 1/256 semitones: the glide runs on this, as the 303's does (an RC on the pitch voltage) */                          /* oscillator phase, step now, step wanted (slide) */
     uint32_t gate, acc, tie, env_pos, note;
-    int32_t xp, dcs, acc_cap, vca, s[4], G, G2, G3, G4, omG, R, k;   /* the ladder: states, gain powers and the loop's reciprocal, set at control rate */
+    int32_t drv, xp, dcs, acc_cap, vca, s[4], G, G2, G3, G4, omG, R, k;   /* the ladder: states, gain powers and the loop's reciprocal, set at control rate */
     uint32_t tick;
 } voice_t;
 static voice_t vo;
@@ -79,10 +91,11 @@ static uint32_t ext_seen, ext_phase, ext_age;
 static uint32_t sq_len, sq_age, sq_prev_sld;
 static void seq_fire(void)
 {
-    const step_t s = pat[seq_step % STEPS];
+    step_t s = pats[pat_idx % PATS][seq_step % STEPS];
+    if (fx_sld && s.note) s.fl |= F_SLD;
     sq_age = 0;
     if (s.note) {
-        gate_on(s.note, s.fl & F_ACC, sq_prev_sld);
+        gate_on(s.note, (s.fl & F_ACC) && !(kn.wave & 2u), sq_prev_sld);          /* (accents off: the switch) */
         vo.tie = s.fl & F_SLD;
     } else {
         vo.tie = 0;
@@ -90,12 +103,21 @@ static void seq_fire(void)
     }
     sq_prev_sld = s.note ? (uint32_t)(s.fl & F_SLD) : 0u;
 }
+static void seq_next(void)                                      /* the next step; at the end of the pattern, the next one cued */
+{
+    uint32_t len = plen[pat_idx % PATS];
+    if (len < 1u || len > STEPS) len = STEPS;
+    if (++seq_step >= len) {
+        seq_step = 0;
+        if (cue_w != cue_r) { pat_idx = cue_q[cue_r % CUEQ] % PATS; cue_r++; }
+    }
+}
 static void seq_play(void)
 {
     seq_step = STEPS - 1u; sq_acc = 661500u; sq_prev_sld = 0; ext_phase = 5; ext_seen = ext_in; ext_age = 0; seq_run = 1;      /* (with an outside clock the next tick is the first step) */
 }
 static void ext_seen_reset(void) { ext_seen = ext_in; ext_phase = 5; ext_age = 0; }
-static void seq_stop(void) { seq_run = 0; sq_prev_sld = 0; vo.gate = 0; vo.tie = 0; }
+static void seq_stop(void) { cue_clear(); seq_run = 0; sq_prev_sld = 0; vo.gate = 0; vo.tie = 0; }
 
 static int32_t core_step(void)                                  /* one step of the oscillator and the ladder; x out (Q19) */
 {
@@ -104,7 +126,7 @@ static int32_t core_step(void)                                  /* one step of t
     t = vo.ph >> 16; dt = vo.incT >> (16 + OSH);
     vo.ph += vo.incT >> OSH;
     vo.ph2 += vo.incT >> (OSH + 1);
-    if (kn.wave) {
+    if (kn.wave & 1u) {
         s = t < 32768u ? 22000 : -22000;
         s += mulq(blep(t, dt), 22000);
         s -= mulq(blep((t + 32768u) & 65535u, dt), 22000);
@@ -118,7 +140,7 @@ static int32_t core_step(void)                                  /* one step of t
         int32_t S, u, o;
         S = mulq(mulq(vo.s[0], vo.G3) + mulq(vo.s[1], vo.G2) + mulq(vo.s[2], vo.G) + vo.s[3], vo.omG);
         fb = (S >> 4) * vo.k >> 12;
-        u = soft(mulq(s * (4 + (int32_t)kn.drv) / 6 - fb, vo.R)) * 16;          /* DRV: the oscillator pushed into the ladder */
+        u = soft(mulq(s * (4 + vo.drv) / 6 - fb, vo.R)) * 16;          /* DRV: the oscillator pushed into the ladder */
         o = mulq(u, vo.G) + mulq(vo.s[0], vo.omG); vo.s[0] = 2 * o - vo.s[0];
         u = o; o = mulq(u, vo.G) + mulq(vo.s[1], vo.omG); vo.s[1] = 2 * o - vo.s[1];
         u = o; o = mulq(u, vo.G) + mulq(vo.s[2], vo.omG); vo.s[2] = 2 * o - vo.s[2];
@@ -149,7 +171,7 @@ static void voice_render(int32_t *out, uint32_t n)
                         ext_phase = 0;
                         if (ext_age > 2000u && ext_age < 90000u) { sq_len = (sq_len * 3u + ext_age) / 4u; seq_bpm = 661500u / sq_len; }
                         ext_age = 0;
-                        seq_step = (seq_step + 1u) % (kn.len < 1u ? 1u : kn.len > STEPS ? STEPS : kn.len);
+                        seq_next();
                         seq_fire();
                     }
                 }
@@ -159,7 +181,7 @@ static void voice_render(int32_t *out, uint32_t n)
                 if (sq_acc >= thr) {
                     sq_acc -= thr;
                     sq_len = thr / seq_bpm;
-                    seq_step = (seq_step + 1u) % (kn.len < 1u ? 1u : kn.len > STEPS ? STEPS : kn.len);
+                    seq_next();
                     seq_fire();
                 }
             }
@@ -167,25 +189,30 @@ static void voice_render(int32_t *out, uint32_t n)
             if (vo.gate && !vo.tie && sq_age > sq_len * 5u / 8u) vo.gate = 0;
         }
         if ((vo.tick++ & 7u) == 0u) {                       /* control rate: 5.5 kHz */
-            int32_t tg = vo.gate ? (vo.acc ? 32767 : 24000) : 0, e, idx, amt;
+            const uint32_t accx = vo.acc || fx_acc;
+            int32_t tg = vo.gate && !fx_kill ? (accx ? 32767 : 24000) : 0, e, idx, amt, pp = vo.p + fx_oct * 256;
             uint32_t ep;
             vo.p += mulq(vo.tp - vo.p, GLIDE_G[kn.sld]);
+            pp = vo.p + fx_oct * 256;
+            pp = pp < 0 ? 0 : pp > 126 * 256 ? 126 * 256 : pp;
             {
-                uint32_t n = (uint32_t)vo.p >> 8, a = NOTE_INC[n], b = NOTE_INC[n + 1u];
-                vo.incT = (uint32_t)mulq((int32_t)(a + (((b - a) >> 8) * ((uint32_t)vo.p & 255u))), TUNE_R[kn.tun]);          /* TUN: a little either way */
+                uint32_t n = (uint32_t)pp >> 8, a = NOTE_INC[n], b = NOTE_INC[n + 1u];
+                vo.incT = (uint32_t)mulq((int32_t)(a + (((b - a) >> 8) * ((uint32_t)pp & 255u))), TUNE_R[kn.tun]);          /* TUN: a little either way */
             }
-            vo.vca += mulq(tg - vo.vca, vo.gate ? 12000 - (int32_t)kn.atk * 370 : 2500);        /* ATK: a soft attack */
+            vo.vca += mulq(tg - vo.vca, fx_kill ? 20000 : vo.gate ? 12000 - (int32_t)kn.atk * 370 : 2500);        /* ATK: a soft attack */
             ep = vo.env_pos >> 16;
             e = ENV_T[ep < 767u ? ep : 767u];
             env_vis = vo.gate ? e : env_vis - (env_vis >> 3);
-            vo.env_pos += DEC_STEP[vo.acc ? kn.adc : kn.dec];            /* accent has its own decay (ADC) */
+            vo.env_pos += DEC_STEP[accx ? kn.adc : kn.dec];            /* accent has its own decay (ADC) */
             vo.acc_cap -= vo.acc_cap >> (12 - (int32_t)kn.swp / 6);        /* SWP: how long the accents pile up */
             amt = ENV_AMT[kn.env];
-            if (vo.acc) amt += mulq(amt + 30, 8192 + (vo.acc_cap >> 1) + (int32_t)kn.acc * 1000);
+            if (accx) amt += mulq(amt + 30, 8192 + (vo.acc_cap >> 1) + (int32_t)kn.acc * 1000);
             idx = (int32_t)kn.cut * 7 + mulq(e, amt) + ((int32_t)vo.note - 45) * (int32_t)kn.trk * 24 / 310;     /* TRK: the cutoff follows the note */
             if (idx > 255) idx = 255;
             if (idx < 0) idx = 0;
-            k = RES_K[kn.res];
+            k = RES_K[fx_res ? KMAX : kn.res];
+            vo.drv = (int32_t)kn.drv + (fx_drv ? 12 : 0);
+            vo.drv = vo.drv > KMAX ? KMAX : vo.drv;
             k += (k * (int32_t)kn.hir) >> 9;                        /* HIR: past the edge of singing */
             vo.G = CUT_G[idx];
             vo.G2 = mulq(vo.G, vo.G); vo.G3 = mulq(vo.G2, vo.G); vo.G4 = mulq(vo.G3, vo.G);
@@ -203,6 +230,7 @@ static void voice_render(int32_t *out, uint32_t n)
         s = soft(s * (6 + (int32_t)kn.muf * 2) / 4) * 7 / 8;          /* MUF: soft clip after the VCA */
         vo.dcs += (s * 16 - vo.dcs) >> 9;                       /* a DC blocker: the clipping is lopsided on a resonant saw */
         s -= vo.dcs >> 4;
+        s = s * (24 + (int32_t)kn.lvl) / 24;                    /* LEVEL */
         if (s > 32000) s = 32000;
         if (s < -32000) s = -32000;
         out[2u * i] += s;

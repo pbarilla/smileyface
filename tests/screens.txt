@@ -1,29 +1,37 @@
-# the README / site screenshots: build/host/shots-<ms>.png -> site/img/
-# steps (playing), sound, fly, gen, patterns
+# the README / site screenshots: build/host/shots-<ms>.png -> site/img/ (steps, fly, walk, play, projects, manual)
 100 btn 12
 1400 shot
 1500 held 0x100
 1600 held 0
-1700 enc 2 5
-1800 enc 3 6
-1900 enc 4 4
-2600 shot
-2700 held 0x100
-2800 held 0
-2900 enc 0 3
-3200 keys 4
-3260 keys 0
-3700 keys 8
-3760 keys 0
+1700 enc 0 3
+2000 keys 4
+2060 keys 0
+2500 keys 8
+2560 keys 0
+3000 shot
+3100 held 0x100
+3200 held 0
+3300 enc 0 2
+3500 keys 4
+3560 keys 0
+3900 keys 16
+3960 keys 0
 4300 shot
 4400 held 0x100
 4500 held 0
-4600 enc 2 2
-4700 enc 0 3
-4800 enc 3 2
-5500 shot
-5600 btn 12
+4600 enc 0 1
+4700 held 0x100
+4800 held 0
+4900 keys 0x80
+4960 keys 0
+5100 keys 0x200
+5160 keys 0
+5300 keys 0x1000
+5360 keys 0
+5600 shot
 5700 held 0x100
 6500 shot
 6600 held 0
-7000 end
+6700 btn 7
+7000 shot
+8000 end

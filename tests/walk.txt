@@ -1,0 +1,19 @@
+# WALK: the corridor; steer between lanes, shoot, hit a monster
+100 held 0x100
+200 held 0
+300 held 0x100
+400 held 0
+500 enc 0 2
+800 shot
+900 btn 12
+1500 shot
+1600 enc 0 -2
+1800 keys 1
+1860 keys 0
+2000 enc 0 3
+2200 keys 4
+2260 keys 0
+2400 shot
+2700 shot
+3000 shot
+4000 end

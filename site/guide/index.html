@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide · Smileyface</title>
+<style>
+  :root { --y:#ffee00; --k:#000; --lime:#a0ff00; --pink:#ff24aa; --cy:#00e2ff; --or:#ff7800; --ink:#f4f0c8; --dim:#9a966a; --line:#38340e; color-scheme:dark; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--k); color:var(--ink); font:16px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+         background-image:conic-gradient(#12140a 25%, #000 0 50%, #12140a 0 75%, #000 0); background-size:88px 88px; }
+  main { max-width:880px; margin:0 auto; padding:36px 16px 72px; }
+  header { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 18px; margin:0 0 10px; }
+  h1 { font-size:40px; margin:0; color:var(--y); letter-spacing:.02em; }
+  .tag { display:inline-block; padding:2px 10px; background:var(--y); color:#000; font-size:13px; letter-spacing:.12em; vertical-align:middle; margin-left:10px; }
+  nav { margin-left:auto; display:flex; gap:16px; }
+  a { color:var(--cy); }
+  h2 { font-size:24px; margin:0 0 8px; color:var(--y); }
+  section { margin:34px 0; padding-top:20px; border-top:3px solid var(--y); }
+  .row { display:flex; gap:24px; align-items:flex-start; }
+  .row .txt { flex:1; min-width:0; }
+  .row img { width:260px; height:auto; image-rendering:pixelated; flex:none; border:2px solid var(--line); }
+  p { margin:0 0 12px; }
+  ol, ul { padding-left:22px; margin:0 0 12px; }
+  li { margin:6px 0; }
+  code { background:#1c1a06; color:var(--lime); padding:1px 7px; border:1px solid var(--line); font:inherit; font-size:.92em; white-space:nowrap; }
+  .lead { font-size:19px; max-width:34em; }
+  table { border-collapse:collapse; width:100%; font-size:14px; margin:8px 0 14px; }
+  th, td { text-align:left; padding:5px 10px 5px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--dim); font-weight:400; white-space:nowrap; }
+  td b { color:var(--pink); }
+  .toc { display:flex; flex-wrap:wrap; gap:8px 14px; margin:14px 0 0; }
+  footer { margin-top:44px; color:var(--dim); font-size:14px; }
+  @media (max-width:640px) { .row { flex-direction:column-reverse; } .row img { width:100%; max-width:320px; } h1 { font-size:32px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Smileyface<span class="tag">GUIDE</span></h1>
+    <nav><a href="../">Home</a><a href="../cheatsheet/">Cheat sheet</a><a href="../play/">Play online</a><a href="../install.html">Install</a></nav>
+  </header>
+  <p class="lead">An acid bass line in your FM-1. One voice, sixteen steps, and a pile of knobs that want twisting. You don't need to read any of this: press <code>GLO</code> on the FM-1 any time and it explains itself.</p>
+  <div class="toc"><a href="#start">Quick start</a><a href="#steps">Write</a><a href="#sound">Knobs</a><a href="#play">Patterns</a><a href="#fly">Fly</a><a href="#walk">Walk</a><a href="#projects">Projects</a><a href="#more">More</a></div>
+
+<section id="start">
+  <div class="row">
+    <div class="txt"><h2>Quick start</h2><ol>
+  <li>Press a key. That's a note, on step 1.</li>
+  <li>Press a few more. Leave gaps with <code>EDIT</code> if you want rests.</li>
+  <li>Press <code>PLAY</code>. You're making acid.</li>
+  <li>Turn <code>KNOB 1</code> to <code>KNOB 4</code> while it plays. Twist away.</li>
+  <li>Press <code>LFO</code> if you've got no ideas. It makes a random pattern. It might rule, it might not.</li>
+  <li>Press <code>GLO</code> if you get lost.</li>
+</ol>
+<p><code>HOME</code> hops between the views: STEPS, FLY, WALK and PLAY. Hold it to open your projects.</p></div>
+    <img src="../img/steps.png" alt="The steps view">
+  </div>
+</section>
+<section id="steps">
+  <div class="row">
+    <div class="txt"><h2>Write a pattern</h2><p>The bars are your 16 steps, and taller means higher. The little smileys underneath are asleep on a rest, and wide awake on a note.</p>
+<ul>
+  <li>Press a key to write a note on the cursor's step. The cursor moves on by itself.</li>
+  <li>Press <code>ENV</code> to give the step an accent. Hold <code>ENV</code> while you press a key to write it with one.</li>
+  <li>Tap <code>SEL</code> to slide the step into the next one. Same trick: hold <code>SEL</code> while you press a key.</li>
+  <li>Press <code>EDIT</code> for a rest.</li>
+  <li>Hold <code>SEL</code> and turn <code>SELECT</code> to wrap the pattern round. The steps slide along, forwards or backwards, and the ones that fall off one end come back at the other.</li>
+  <li>Turn <code>SELECT</code> to move the cursor around without writing.</li>
+  <li>Press <code>OCT-</code> or <code>OCT+</code> to play lower or higher.</li>
+</ul></div>
+    <img src="../img/steps.png" alt="The steps view">
+  </div>
+</section>
+<section id="sound">
+  <div class="row">
+    <div class="txt"><h2>Twist the knobs</h2><p>The four dials at the bottom are <code>KNOB 1</code> to <code>KNOB 4</code>. They always change the sound, in every view, so you can twist while you play. Turn <code>ALGORITHM</code> to reach the next page of knobs (the dots at the right show where you are).</p>
+<table><tr><th>1</th><td><b>CUTOFF</b> opens the filter</td><td><b>RESON</b> makes it sing</td><td><b>ENVMOD</b> how far each note sweeps it</td><td><b>DECAY</b> how long the sweep takes</td></tr><tr><th>2</th><td><b>TUNE</b> nudges the pitch</td><td><b>ACCENT</b> how hard accents hit</td><td><b>SLIDE</b> how long slides take</td><td><b>TEMPO</b> the speed</td></tr><tr><th>3</th><td><b>DRIVE</b> oscillator into the filter</td><td><b>ACC DEC</b> how long an accent rings</td><td><b>TRACK</b> filter follows pitch</td><td><b>ATTACK</b> a soft start</td></tr><tr><th>4</th><td><b>FILT FM</b> oscillator shakes the filter</td><td><b>SWING</b> swings the odd steps</td><td><b>LENGTH</b> how many steps play</td><td><b>LEVEL</b> how loud it is</td></tr><tr><th>5</th><td><b>WAVE</b> saw or square</td><td><b>SUB OSC</b> a square an octave down</td><td><b>MUFFLE</b> 0, 1, 2</td><td><b>SWEEP</b> slow, norm, fast</td></tr><tr><th>6</th><td><b>HI RES</b> resonance past the edge</td><td><b>POLES</b> three poles or four</td><td><b>ACCENT</b> accents on or off</td><td></td></tr></table>
+<p>The pages follow the TD-3-MO's panel: the filter, then tune and accent, then the Devil Fish row (drive, accent decay, tracking, soft attack), then the extras. The last two pages (5 and 6) are the switches, drawn as switches (wave, sub osc, muffler, sweep speed, hi-res, poles, accent on or off): turn a knob right to flip one up. Page 4 has the tempo's neighbours: swing, pattern length and the output level.</p></div>
+    <img src="../img/steps.png" alt="The dials at the bottom">
+  </div>
+</section>
+<section id="walk">
+  <div class="row">
+    <div class="txt"><h2>Walk</h2><p>Same idea as Fly, but you're in a corridor with a first-person view. Press <code>PLAY</code> first. The steps come down the corridor at you.</p>
+<ul>
+  <li>Turn <code>SELECT</code> to step left and right between the 8 lanes. Each lane is a note, low on the left and high on the right.</li>
+  <li>Press any key to shoot. A shot writes a note in your lane, on the step that's passing. No shot is a rest.</li>
+  <li>Hit a monster and the note gets an accent.</li>
+  <li>Shoot twice in a row in different lanes and the notes slide. Hold <code>SEL</code> to stop that.</li>
+</ul></div>
+    <img src="../img/walk.png" alt="The walk view">
+  </div>
+</section>
+<section id="play">
+  <div class="row">
+    <div class="txt"><h2>Patterns, cue and chain</h2><p>Every project has 16 patterns. Turn <code>PRESETS</code> to pick the one you're writing. While it's playing, the new one waits for the end of the loop.</p>
+<p>In the PLAY view the 16 white keys are the 16 patterns, left to right.</p>
+<ul>
+  <li>Press a key to cue that pattern. It starts when the current one ends.</li>
+  <li>Press several keys to chain patterns. They play in the order you pressed them, and the pink numbers show the order.</li>
+  <li>Press <code>EDIT</code> to clear the chain.</li>
+  <li>Hold <code>ENV</code> to accent everything that's playing. It's the Devil Fish's accent button.</li>
+</ul>
+<p>Each pattern has its own length. Turn <code>ALGORITHM</code> to page 4 and use <code>KNOB 3</code>.</p></div>
+    <img src="../img/play.png" alt="The play view">
+  </div>
+</section>
+<section id="fly">
+  <div class="row">
+    <div class="txt"><h2>Fly</h2><p>A different way to write. Press <code>PLAY</code> first, then fly.</p>
+<ul>
+  <li>Turn <code>SELECT</code> to steer the ship up and down the scale. Higher is a higher note.</li>
+  <li>Press any key to fire. A shot writes a note at the ship's height, on the step that's passing. No shot is a rest.</li>
+  <li>Hit a foe and the note gets an accent.</li>
+  <li>Shoot twice in a row at different heights and the notes slide. Hold <code>SEL</code> to stop that.</li>
+</ul></div>
+    <img src="../img/fly.png" alt="The fly view">
+  </div>
+</section>
+<section id="projects">
+  <div class="row">
+    <div class="txt"><h2>Projects</h2><p>Hold <code>HOME</code> to see your 12 projects. A project is 16 patterns, the sound and the tempo.</p>
+<ul>
+  <li>Turn <code>SELECT</code> to pick one and press <code>HOME</code> to open it.</li>
+  <li>Hold <code>SEL</code> on a project to copy it into a free spot. Hold <code>EDIT</code> to start it over.</li>
+  <li>Press <code>SAVE</code> to save. Stop touching it for two seconds and it saves by itself.</li>
+</ul></div>
+    <img src="../img/projects.png" alt="The projects list">
+  </div>
+</section>
+<section id="more">
+  <h2>More tricks</h2>
+  <ul>
+    <li><code>LFO</code> is a random pattern. <code>ARP</code> nudges a few steps. <code>REC</code> is undo, and pressing it again flips back.</li>
+    <li>Tap <code>SEQ</code> in time to set the tempo. Or turn <code>ALGORITHM</code> once and use <code>KNOB 4</code>.</li>
+    <li>Send MIDI clock to the FM-1 and it follows it. The tempo turns blue. Start and stop come along too.</li>
+    <li>Play it from a keyboard over USB-MIDI. Hard notes (velocity 100 and up) are accents.</li>
+    <li>Everything on one page, ready to print: the <a href="../cheatsheet/">cheat sheet</a>.</li>
+  </ul>
+</section>
+<footer>Smileyface is GPL-3.0-only, built on Felucca, SLOOP and Chipbox.</footer>
+</main>
+</body>
+</html>

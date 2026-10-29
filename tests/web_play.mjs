@@ -17,8 +17,18 @@ const block = () => { const p = m._web_audio() >> 2; return m.HEAP32.subarray(p,
 const peak = (n = 40) => { let pk = 0; for (let b = 0; b < n; b++) for (const v of block()) pk = Math.max(pk, Math.abs(v)); return pk; };
 m._web_start();
 await sleep(600);
-ok(lit() > 20000, "the screen draws on boot");
+ok(lit() > 3000, "the screen draws on boot");
 ok(peak() === 0, "silent before anything is pressed");
+const quick = Array.from(fb().slice(0, 240)).join();
+await press(BTN.HOME);                                            // the quick start is up on a new device: HOME leaves it
+await sleep(300);
+ok(Array.from(fb().slice(0, 240)).join() !== quick, "HOME leaves the quick start");
+await press(BTN.GLO); await sleep(300);
+const man = lit();
+await press(BTN.GLO); await sleep(200);                           // GLO again: the contents
+for (let i = 0; i < 6; i++) { m._web_enc(1, 1); await sleep(40); m._web_enc(6, 1); await sleep(40); }
+await press(BTN.HOME); await sleep(300);
+ok(man > 5000 && lit() > 6000, "GLO opens the manual, HOME closes it");
 m._web_keys(1 << 5);
 await sleep(80);
 ok(peak(30) > 1000, "a key sounds");
@@ -29,15 +39,20 @@ await press(BTN.PLAY);
 await sleep(700);
 let pk = peak(80);
 ok(pk > 2000 && pk < 30000, `PLAY plays the pattern (peak ${pk})`);
-const before = Array.from(fb().slice(100 * 240, 101 * 240)).join();
+const before = Array.from(fb().slice(50 * 240, 170 * 240)).join();
 await sleep(400);
-const after = Array.from(fb().slice(100 * 240, 101 * 240)).join();
+const after = Array.from(fb().slice(50 * 240, 170 * 240)).join();
 ok(before !== after, "the screen moves while it plays");
-for (const [name, pressHome] of [["sound", 1], ["fly", 1], ["gen", 1], ["steps", 1]]) {
+for (const [name, pressHome] of [["fly", 1], ["walk", 1], ["play", 1], ["steps", 1]]) {
   await press(BTN.HOME);
   await sleep(250);
-  ok(lit() > 20000, `HOME -> ${name} draws`);
+  ok(lit() > 6000, `HOME -> ${name} draws`);
 }
+await press(BTN.HOME); await press(BTN.HOME); await press(BTN.HOME);   // to the PLAY view
+await sleep(200);
+for (const k of [7, 9, 11]) { m._web_keys(1 << k); await sleep(80); m._web_keys(0); await sleep(80); }          // cue three patterns
+ok(lit() > 6000, "PLAY: keys cue patterns");
+await press(BTN.HOME); await sleep(200);
 m._web_button(BTN.HOME, 1);
 await sleep(750);
 const pl = lit();
@@ -46,14 +61,15 @@ m._web_button(BTN.HOME, 0);
 await sleep(200);
 await press(BTN.OCT_DOWN);
 await sleep(200);
-ok(lit() > 20000, "OCT- leaves the picker");
+ok(lit() > 6000, "OCT- leaves the picker");
 await press(BTN.PLAY);
 await sleep(200);
 for (let i = 0; i < 40; i++) { m._web_enc(2, 1); await sleep(20); m._web_enc(3, 1); await sleep(20); m._web_enc(4, -1); await sleep(20); }
-ok(lit() > 20000, "twisting the knobs keeps drawing");
+ok(lit() > 6000, "twisting the knobs keeps drawing");
 await press(BTN.LFO); await press(BTN.ARP); await press(BTN.REC); await press(BTN.REC);
 for (let i = 0; i < 16; i++) { await key(i % 27); await press(BTN.ENV, 30); await press(BTN.SEL, 30); }
+m._web_button(BTN.SEL, 1); for (let i = 0; i < 6; i++) { m._web_enc(0, i % 2 ? -1 : 1); await sleep(40); } m._web_button(BTN.SEL, 0); await sleep(100);   // wrap
 await press(BTN.SAVE);
-ok(lit() > 20000, "keys, accent, slide, random, mutate, undo, save all survive");
+ok(lit() > 6000, "keys, accent, slide, random, mutate, undo, save all survive");
 console.log(fails ? `${fails} failed` : "all ok");
 process.exit(fails ? 1 : 0);

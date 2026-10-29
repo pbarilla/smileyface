@@ -1,0 +1,85 @@
+# the manual: GLO on the steps view, then SELECT through every page of every chapter (a shot on each)
+100 btn 7
+300 shot
+380 enc 0 1
+500 shot
+580 enc 0 1
+700 shot
+780 enc 0 1
+900 shot
+980 enc 0 1
+1100 shot
+1180 enc 0 1
+1300 shot
+1380 enc 0 1
+1500 shot
+1580 enc 0 1
+1700 shot
+1780 enc 0 1
+1900 shot
+1980 enc 0 1
+2100 shot
+2180 enc 0 1
+2300 shot
+2380 enc 0 1
+2500 shot
+2580 enc 0 1
+2700 shot
+2780 enc 0 1
+2900 shot
+2980 enc 0 1
+3100 shot
+3180 enc 0 1
+3300 shot
+3380 enc 0 1
+3500 shot
+3580 enc 0 1
+3700 shot
+3780 enc 0 1
+3900 shot
+3980 enc 0 1
+4100 shot
+4180 enc 0 1
+4300 shot
+4380 enc 0 1
+4500 shot
+4580 enc 0 1
+4700 shot
+4780 enc 0 1
+4900 shot
+4980 enc 0 1
+5100 shot
+5180 enc 0 1
+5300 shot
+5380 enc 0 1
+5500 shot
+5580 enc 0 1
+5700 shot
+5780 enc 0 1
+5900 shot
+5980 enc 0 1
+6100 shot
+6180 enc 0 1
+6300 shot
+6380 enc 0 1
+6500 shot
+6580 enc 0 1
+6700 shot
+6780 enc 0 1
+6900 shot
+6980 enc 0 1
+7100 shot
+7180 enc 0 1
+7300 shot
+7380 enc 0 1
+7500 shot
+7580 enc 0 1
+7700 shot
+7780 enc 0 1
+7900 shot
+7980 enc 0 1
+8100 shot
+8180 enc 0 1
+8300 shot
+8380 enc 0 1
+8600 end

@@ -1,0 +1,275 @@
+{
+ "views": [
+  "STEPS",
+  "FLY",
+  "WALK",
+  "PLAY"
+ ],
+ "short": {
+  "SELECT": "cursor",
+  "PRESETS": "pattern",
+  "ALGORITHM": "page",
+  "MASTER": "volume",
+  "KNOB1": "sound",
+  "KNOB2": "sound",
+  "KNOB3": "sound",
+  "KNOB4": "sound",
+  "OCT-": "octave",
+  "OCT+": "octave",
+  "SEL": "slide",
+  "ENV": "accent",
+  "LFO": "random",
+  "EDIT": "rest",
+  "GLO": "manual",
+  "HOME": "view",
+  "SAVE": "save",
+  "ARP": "nudge",
+  "SEQ": "tap",
+  "PLAY": "play",
+  "REC": "undo",
+  "FX": ""
+ },
+ "controls": [
+  {
+   "id": "keys",
+   "name": "KEYS",
+   "STEPS": "Write a note, move on",
+   "FLY": "Fire (a shot is a note)",
+   "PLAY": "White keys cue patterns",
+   "WALK": "Shoot (a shot is a note)"
+  },
+  {
+   "id": "SELECT",
+   "name": "SELECT",
+   "STEPS": "Move the cursor. SEL held: wrap the pattern",
+   "FLY": "Steer the ship",
+   "WALK": "Step between lanes"
+  },
+  {
+   "id": "PRESETS",
+   "name": "PRESETS",
+   "STEPS": "Pick a pattern (cued while it plays)",
+   "FLY": "Pick a pattern (cued while it plays)",
+   "PLAY": "Pick a pattern (cued while it plays)",
+   "WALK": "Pick a pattern (cued while it plays)"
+  },
+  {
+   "id": "ALGORITHM",
+   "name": "ALGORITHM",
+   "STEPS": "Next page of knobs",
+   "FLY": "Next page of knobs",
+   "PLAY": "Next page of knobs",
+   "WALK": "Next page of knobs"
+  },
+  {
+   "id": "KNOB 1-4",
+   "name": "KNOB 1 to 4",
+   "STEPS": "The sound (see the pages below)",
+   "FLY": "The sound (see the pages below)",
+   "PLAY": "The sound (see the pages below)",
+   "WALK": "The sound (see the pages below)"
+  },
+  {
+   "id": "HOME",
+   "name": "HOME",
+   "STEPS": "Next view. Hold: projects",
+   "FLY": "Next view. Hold: projects",
+   "PLAY": "Next view. Hold: projects",
+   "WALK": "Next view. Hold: projects"
+  },
+  {
+   "id": "GLO",
+   "name": "GLO",
+   "STEPS": "Manual",
+   "FLY": "Manual",
+   "PLAY": "Manual",
+   "WALK": "Manual"
+  },
+  {
+   "id": "PLAY",
+   "name": "PLAY",
+   "STEPS": "Start, stop",
+   "FLY": "Start, stop",
+   "PLAY": "Start, stop",
+   "WALK": "Start, stop"
+  },
+  {
+   "id": "SEQ",
+   "name": "SEQ",
+   "STEPS": "Tap tempo",
+   "FLY": "Tap tempo",
+   "PLAY": "Tap tempo",
+   "WALK": "Tap tempo"
+  },
+  {
+   "id": "ENV",
+   "name": "ENV",
+   "STEPS": "Accent on the step. Held: write with one",
+   "FLY": "Held: shots are accents",
+   "PLAY": "Held: accent everything",
+   "WALK": "Held: shots are accents"
+  },
+  {
+   "id": "SEL",
+   "name": "SEL",
+   "STEPS": "Tap: slide on the step. Held: write with a slide",
+   "FLY": "Held: no automatic slides",
+   "WALK": "Held: no automatic slides"
+  },
+  {
+   "id": "EDIT",
+   "name": "EDIT",
+   "STEPS": "Rest, move on",
+   "PLAY": "Clear the chain"
+  },
+  {
+   "id": "LFO",
+   "name": "LFO",
+   "STEPS": "Random pattern",
+   "FLY": "Random pattern",
+   "PLAY": "Random pattern",
+   "WALK": "Random pattern"
+  },
+  {
+   "id": "ARP",
+   "name": "ARP",
+   "STEPS": "Nudge a few steps",
+   "FLY": "Nudge a few steps",
+   "PLAY": "Nudge a few steps",
+   "WALK": "Nudge a few steps"
+  },
+  {
+   "id": "REC",
+   "name": "REC",
+   "STEPS": "Undo (again: flip back)",
+   "FLY": "Undo (again: flip back)",
+   "PLAY": "Undo (again: flip back)",
+   "WALK": "Undo (again: flip back)"
+  },
+  {
+   "id": "SAVE",
+   "name": "SAVE",
+   "STEPS": "Save",
+   "FLY": "Save",
+   "PLAY": "Save",
+   "WALK": "Save"
+  },
+  {
+   "id": "OCT-/OCT+",
+   "name": "OCT-/OCT+",
+   "STEPS": "Octave",
+   "FLY": "Octave",
+   "PLAY": "Octave",
+   "WALK": "Octave"
+  }
+ ],
+ "pages": [
+  [
+   "CUTOFF",
+   "opens the filter"
+  ],
+  [
+   "RESON",
+   "makes it sing"
+  ],
+  [
+   "ENVMOD",
+   "how far each note sweeps it"
+  ],
+  [
+   "DECAY",
+   "how long the sweep takes"
+  ],
+  [
+   "TUNE",
+   "nudges the pitch"
+  ],
+  [
+   "ACCENT",
+   "how hard accents hit"
+  ],
+  [
+   "SLIDE",
+   "how long slides take"
+  ],
+  [
+   "TEMPO",
+   "the speed"
+  ],
+  [
+   "DRIVE",
+   "the oscillator pushed into the filter"
+  ],
+  [
+   "ACC DEC",
+   "how long an accent rings"
+  ],
+  [
+   "TRACK",
+   "the filter follows the pitch"
+  ],
+  [
+   "ATTACK",
+   "a soft start to each note"
+  ],
+  [
+   "FILT FM",
+   "the oscillator shakes the filter"
+  ],
+  [
+   "SWING",
+   "swings the odd steps late"
+  ],
+  [
+   "LENGTH",
+   "how many steps play"
+  ],
+  [
+   "LEVEL",
+   "how loud it is"
+  ],
+  [
+   "WAVE",
+   "saw or square (a switch)"
+  ],
+  [
+   "SUB OSC",
+   "a square an octave down (a switch)"
+  ],
+  [
+   "MUFFLE",
+   "0, 1, 2 (a switch)"
+  ],
+  [
+   "SWEEP",
+   "slow, norm, fast (a switch)"
+  ],
+  [
+   "HI RES",
+   "resonance past the edge (a switch)"
+  ],
+  [
+   "POLES",
+   "3 or 4 (a switch)"
+  ],
+  [
+   "ACCENT",
+   "accents on or off (a switch)"
+  ],
+  [
+   "",
+   ""
+  ]
+ ],
+ "pads": [],
+ "tips": [
+  "Hold SEL and turn SELECT to wrap the pattern round: the steps slide along and come back at the other end",
+  "Hold ENV or SEL while you press a key to write the note with an accent or a slide",
+  "PLAY view: press white keys to cue patterns. They play in the order you pressed, each when the one before ends. Hold ENV to accent everything",
+  "Pages 5 and 6 of the knobs are the switches, drawn as switches: turn a knob right to flip one up",
+  "WALK: a corridor of 8 lanes, low notes left. Shoot to write a note in your lane; hit a monster for an accent",
+  "FLY: hit a foe for an accent. Shots on neighbouring steps at different heights slide",
+  "Hold SEL on a project in the project list to copy it, hold EDIT to start it over",
+  "Send MIDI clock and the FM-1 follows it. The tempo turns blue"
+ ]
+}

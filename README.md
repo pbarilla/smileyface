@@ -2,14 +2,16 @@
 
 An acid bass line for the M-VAVE FM-1. One 303-style voice, 16 steps, knobs to twist.
 
-- **Steps**: press a key to write a note, `ENV` for an accent, `SEL` for a slide, `EDIT` for a rest.
-- **Sound**: five pages of knobs: cutoff, resonance, env mod, decay; accent, slide, drive, wave; accent decay, tracking, soft attack, muffler; tune, sub, sweep, poles; filter FM, hi resonance, swing, length.
-- **Fly**: steer a ship up and down the scale, every key fires. A shot is a note, no shot is a rest.
+- **Steps**: press a key to write a note, `ENV` for an accent, `SEL` for a slide, `EDIT` for a rest. 16 patterns a project.
+- **Play**: the white keys cue patterns and chain them. The switches (wave, sub osc, muffler, sweep, hi-res, poles, accent on or off) are the last knob pages, drawn as switches.
+- **Knobs**: six pages: cutoff, resonance, env mod, decay; accent, slide, drive, wave; accent decay, tracking, soft attack, muffler; tune, sub, sweep, poles; filter FM, hi resonance, swing, length.
+- **Wrap**: hold `SEL` and turn `SELECT` to wrap the pattern round.
+- **Fly** and **Walk**: shoot to write. Steer a ship up and down the scale, or step between the lanes of a corridor. Every key shoots: a shot is a note, no shot is a rest, a hit is an accent.
 
-<p><img src="site/img/steps.png" width="19%"> <img src="site/img/sound.png" width="19%"> <img src="site/img/fly.png" width="19%"> <img src="site/img/gen.png" width="19%"> <img src="site/img/patterns.png" width="19%"></p>
+<p><img src="site/img/steps.png" width="19%"> <img src="site/img/fly.png" width="19%"> <img src="site/img/walk.png" width="19%"> <img src="site/img/play.png" width="19%"> <img src="site/img/projects.png" width="19%"></p>
 
-- **Gen**: hits spread over the 16 steps, a melody that wanders. Turn the knobs, roll the dice with `SELECT`.
 - **Patterns**: hold `HOME` for 12 slots. `LFO` is a random pattern (it might rule, it might not), `ARP` nudges a few steps, `REC` undoes.
+- Press `GLO` for the manual, on the FM-1, at the page for where you are. Online: the [guide](site/guide/index.html) and the cheat sheet (`python3 tools/make_cheatsheet.py`).
 - `SEQ` taps the tempo. MIDI clock, start and stop are followed.
 
 Forked from [Chipbox](https://github.com/pbarilla/chipbox), which is built on Felucca, SLOOP and Dinghy (GPL-3.0-only). See `LICENSING.md`.

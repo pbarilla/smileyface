@@ -1,0 +1,17 @@
+# wrap the pattern: hold SEL, turn SELECT. The first shot is the pattern, then one step forward, two back, and a tap on SEL (a slide)
+300 shot
+400 held 0x8
+500 enc 0 1
+600 held 0
+800 shot
+900 held 0x8
+1000 enc 0 -1
+1100 held 0
+1200 held 0x8
+1300 enc 0 -1
+1400 held 0
+1600 shot
+1700 held 0x8
+1800 held 0
+2000 shot
+2400 end

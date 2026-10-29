@@ -1,0 +1,16 @@
+# the quick start a new device opens on (build with -DQUICK_DEMO): SELECT through its pages
+300 shot
+400 enc 0 1
+700 shot
+800 enc 0 1
+1100 shot
+1200 enc 0 1
+1500 shot
+1600 enc 0 1
+1900 shot
+2000 enc 0 1
+2300 shot
+2400 held 0x100
+2500 held 0
+2800 shot
+3500 end
