@@ -1,0 +1,19 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+/* Smileyface's look for the web: black, acid yellow, a checkerboard that moves. Loaded after each page's own styles. */
+:root { --y:#ffee00; --k:#000; --lime:#a0ff00; --pink:#ff24aa; --cy:#00e2ff; --or:#ff7800;
+        --bg:#000; --panel:#16160a; --deep:#0c0c06; --ink:#f4f0c8; --dim:#9a966a; --red:#ff24aa; --blue:#00e2ff; --line:#38340e; }
+body { background-color:#000; color:var(--ink);
+       background-image:conic-gradient(#14160a 25%, #000 0 50%, #14160a 0 75%, #000 0); background-size:88px 88px; animation:drift 24s linear infinite; }
+@keyframes drift { to { background-position:88px 88px; } }
+.chrome { font-family:"Arial Black", Impact, "Helvetica Neue", sans-serif; font-weight:900; letter-spacing:-.03em; text-transform:uppercase;
+          color:var(--y); text-shadow:3px 3px 0 var(--pink), -3px -3px 0 var(--cy); }
+a { color:var(--cy); }
+.btn-acid { display:inline-block; padding:12px 22px; background:var(--y); color:#000; text-decoration:none; font:900 16px "Arial Black", Impact, sans-serif; letter-spacing:.04em;
+            text-transform:uppercase; border:3px solid #000; box-shadow:5px 5px 0 var(--pink); transition:transform .08s, box-shadow .08s; cursor:pointer; }
+.btn-acid:hover, .btn-acid:focus-visible { transform:translate(3px, 3px); box-shadow:2px 2px 0 var(--pink); }
+.btn-acid.cy { background:var(--cy); box-shadow:5px 5px 0 #000; } .btn-acid.lime { background:var(--lime); } .btn-acid.pk { background:var(--pink); color:#000; box-shadow:5px 5px 0 var(--y); }
+button { font-family:"Arial Black", Impact, sans-serif; text-transform:uppercase; letter-spacing:.04em; }
+main button, #go { background:var(--y); color:#000; border:3px solid #000; box-shadow:5px 5px 0 var(--pink); }
+h1 a { color:inherit; text-decoration:none; }
+:focus-visible { outline:3px solid var(--cy); outline-offset:3px; }
+@media (prefers-reduced-motion: reduce) { body { animation:none; } *, *::before, *::after { animation:none !important; transition:none !important; } }

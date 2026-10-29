@@ -4,44 +4,152 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Smileyface</title>
-<meta name="description" content="An acid bass line for the FM-1. One voice, sixteen steps, knobs to twist.">
+<meta name="description" content="Give your FM-1 some LSD">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23ffee00' stroke='%23000' stroke-width='2'/%3E%3Cellipse cx='11' cy='12' rx='2' ry='4'/%3E%3Cellipse cx='21' cy='12' rx='2' ry='4'/%3E%3Cpath d='M7 19q9 9 18 0' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
-  :root { --y:#ffee00; --k:#000; --lime:#a0ff00; --pink:#ff24aa; --cy:#00e2ff; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--k); color:var(--y); font:16px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-         background-image:conic-gradient(#16180a 25%, #000 0 50%, #16180a 0 75%, #000 0); background-size:88px 88px; }
-  main { max-width:760px; margin:0 auto; padding:48px 16px 72px; }
-  h1 { font-size:56px; margin:0 0 8px; letter-spacing:.02em; }
-  p { margin:0 0 12px; max-width:34em; }
-  a { color:var(--cy); }
-  .shots { display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin:28px 0 0; }
-  .shots img { width:100%; height:auto; display:block; image-rendering:pixelated; }
-  @media (max-width:560px) { .shots { grid-template-columns:repeat(2, 1fr); } }
-  .btns { display:flex; flex-wrap:wrap; gap:12px; margin:24px 0; }
-  .btn { display:inline-block; padding:12px 20px; background:var(--y); color:var(--k); text-decoration:none; font-weight:700; }
-  .btn.alt { background:var(--k); color:var(--pink); box-shadow:inset 0 0 0 2px var(--pink); }
-  footer { margin-top:48px; font-size:14px; color:#8a8a50; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; overflow-x:hidden; }
+  .wrap { max-width:960px; margin:0 auto; padding:0 18px; }
+
+  /* the hero: acid yellow, the melting smiley, the title */
+  .hero { background:var(--y); color:#000; position:relative; border-bottom:6px solid #000; overflow:hidden; }
+  .hero::before { content:""; position:absolute; inset:0; opacity:.14; background-image:conic-gradient(#000 25%, transparent 0 50%, #000 0 75%, transparent 0); background-size:56px 56px; animation:drift 14s linear infinite; }
+  .hero .wrap { position:relative; display:flex; align-items:center; gap:24px; padding-top:38px; padding-bottom:38px; }
+  .hero h1 { margin:0; font:900 clamp(44px, 11vw, 112px)/.86 "Arial Black", Impact, sans-serif; letter-spacing:-.05em; text-transform:uppercase; color:#000;
+             text-shadow:4px 4px 0 var(--pink), 8px 8px 0 var(--cy); }
+  .hero p { font-size:19px; max-width:24em; margin:18px 0 22px; font-weight:700; }
+  .hero .btns { display:flex; flex-wrap:wrap; gap:14px; }
+  .face { flex:none; width:clamp(150px, 28vw, 270px); aspect-ratio:200/250; height:auto; animation:sway 5s ease-in-out infinite; transform-origin:50% 90%; filter:drop-shadow(8px 8px 0 #000); }
+  @keyframes sway { 0%, 100% { transform:rotate(-5deg); } 50% { transform:rotate(5deg); } }
+  .drip { transform-box:fill-box; transform-origin:50% 0; animation:drip 3.4s ease-in-out infinite; }
+  .drip.b { animation-delay:-1.1s; } .drip.c { animation-delay:-2.2s; }
+  @keyframes drip { 0%, 100% { transform:scaleY(.35); } 50% { transform:scaleY(1.4); } }
+  .eye { transform-box:fill-box; transform-origin:50% 50%; animation:blink 6s infinite; }
+  @keyframes blink { 0%, 94%, 100% { transform:scaleY(1); } 96% { transform:scaleY(.1); } }
+
+  /* the ticker */
+  .ticker { background:#000; color:var(--y); border-bottom:6px solid #000; overflow:hidden; white-space:nowrap; font:900 22px/1 "Arial Black", Impact, sans-serif; letter-spacing:.06em; padding:14px 0; }
+  .ticker .track { display:inline-block; animation:tick 26s linear infinite; }
+  .ticker span { margin:0 18px; } .ticker span:nth-child(3n+2) { color:var(--pink); } .ticker span:nth-child(3n) { color:var(--cy); }
+  @keyframes tick { to { transform:translateX(-50%); } }
+
+  /* the corridor: the floor from WALK, walking towards the sun */
+  .corridor { height:230px; overflow:hidden; position:relative; background:linear-gradient(#0c0016 0 40%, #000 40%); border-bottom:6px solid #000; perspective:360px; }
+  .plane { position:absolute; left:-80%; right:-80%; top:36%; bottom:-120%; transform-origin:50% 0; transform:rotateX(68deg);
+           background-image:conic-gradient(#ffee00 25%, #1a1a00 0 50%, #ffee00 0 75%, #1a1a00 0); background-size:120px 120px; animation:walk 1.6s linear infinite; }
+  @keyframes walk { to { background-position:0 120px; } }
+  .corridor .sun { position:absolute; left:50%; top:6px; width:84px; height:105px; margin-left:-42px; }
+  .corridor .vig { position:absolute; inset:0; background:linear-gradient(#000 0, transparent 30%, transparent 70%, #000 100%), radial-gradient(ellipse at 50% 38%, transparent 30%, rgba(0,0,0,.7) 100%); pointer-events:none; }
+
+  section { padding:44px 0; }
+  h2 { margin:0 0 20px; font:900 clamp(28px, 6vw, 44px)/1 "Arial Black", Impact, sans-serif; letter-spacing:-.03em; text-transform:uppercase; color:var(--y); text-shadow:3px 3px 0 var(--pink); }
+  .shots { display:grid; grid-template-columns:repeat(5, 1fr); gap:14px; padding:6px 0 18px; }
+  .shots figure { margin:0; transition:transform .12s; }
+  .shots figure:nth-child(odd) { transform:rotate(-1.6deg); } .shots figure:nth-child(even) { transform:rotate(1.3deg); }
+  .shots figure:hover { transform:rotate(0) scale(1.06); z-index:2; position:relative; }
+  .shots img { width:100%; height:auto; display:block; image-rendering:pixelated; border:3px solid #000; box-shadow:6px 6px 0 var(--pink); background:#000; }
+  .shots figure:nth-child(3n+2) img { box-shadow:6px 6px 0 var(--cy); } .shots figure:nth-child(3n) img { box-shadow:6px 6px 0 var(--lime); }
+  .shots figcaption { margin-top:12px; font:900 13px "Arial Black", Impact, sans-serif; letter-spacing:.1em; text-transform:uppercase; text-align:center; color:var(--y); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(270px, 1fr)); gap:20px; }
+  .card { background:#0d0d05; border:3px solid #000; border-top:10px solid var(--y); padding:18px 18px 8px; box-shadow:7px 7px 0 var(--y); }
+  .card:nth-child(4n+2) { border-top-color:var(--pink); box-shadow:7px 7px 0 var(--pink); } .card:nth-child(4n+3) { border-top-color:var(--cy); box-shadow:7px 7px 0 var(--cy); } .card:nth-child(4n) { border-top-color:var(--lime); box-shadow:7px 7px 0 var(--lime); }
+  .card h3 { margin:0 0 8px; font:900 20px/1.1 "Arial Black", Impact, sans-serif; text-transform:uppercase; letter-spacing:-.02em; color:var(--y); }
+  .card p { margin:0 0 12px; }
+  code { background:#1c1a06; color:var(--lime); padding:1px 7px; border:1px solid var(--line); font:inherit; font-size:.92em; white-space:nowrap; }
+  .plain { font-size:19px; max-width:34em; font-weight:700; margin:0; }
+  .install { background:var(--pink); color:#000; border-top:6px solid #000; border-bottom:6px solid #000; }
+  .install h2 { color:#000; text-shadow:3px 3px 0 var(--y); }
+  .install .wrap { display:flex; flex-wrap:wrap; gap:26px; align-items:center; }
+  .install ol { flex:1; min-width:260px; margin:0; padding-left:24px; font-weight:700; } .install li { margin:6px 0; }
+  .install .big { flex:none; text-align:center; }
+  .install .btn-acid { font-size:22px; padding:16px 34px; background:#000; color:var(--y); box-shadow:6px 6px 0 var(--y); }
+  .install .btn-acid:hover { box-shadow:2px 2px 0 var(--y); }
+  .beta { display:inline-block; background:#000; color:var(--y); font:900 13px "Arial Black", Impact, sans-serif; letter-spacing:.14em; padding:4px 10px; margin-bottom:14px; transform:rotate(-2deg); }
+  footer { padding:34px 0 60px; color:var(--dim); font-size:14px; text-align:center; }
+  footer a { color:var(--cy); }
+  @media (max-width:760px) { .hero .wrap { flex-direction:column-reverse; text-align:center; } .hero p { margin-left:auto; margin-right:auto; } .hero .btns { justify-content:center; }
+                              .shots { grid-template-columns:repeat(2, 1fr); } .corridor { height:170px; } }
 </style>
+<link rel="stylesheet" href="acid.css">
 </head>
 <body>
-<main>
-  <h1>Smileyface</h1>
-  <p>An acid bass line for the FM-1. One voice, sixteen steps, and knobs made to be twisted.</p>
-  <div class="btns">
-    <a class="btn" href="play/">Play online</a>
-    <a class="btn alt" href="install.html">Install</a>
-    <a class="btn alt" href="guide/">Guide</a>
-    <a class="btn alt" href="cheatsheet/">Cheat sheet</a>
-    <a class="btn alt" href="https://github.com/pbarilla/smileyface">Source</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="smile" viewBox="0 0 200 250">
+    <g fill="#ffee00" stroke="#000" stroke-width="7" stroke-linejoin="round">
+      <rect class="drip" x="48" y="150" width="20" height="70" rx="10"/>
+      <rect class="drip b" x="92" y="168" width="20" height="62" rx="10"/>
+      <rect class="drip c" x="134" y="150" width="20" height="76" rx="10"/>
+      <circle cx="100" cy="100" r="92"/>
+    </g>
+    <circle cx="100" cy="100" r="86" fill="#ffee00"/>
+    <rect x="42" y="142" width="116" height="14" fill="#ffee00"/>
+    <ellipse class="eye" cx="68" cy="78" rx="13" ry="25" fill="#000"/>
+    <ellipse class="eye" cx="132" cy="78" rx="13" ry="25" fill="#000"/>
+    <path d="M40 120 Q100 188 160 120" fill="none" stroke="#000" stroke-width="12" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <span class="beta">BETA</span>
+      <h1>Smiley<br>face</h1>
+      <p>You're making acid, baby!</p>
+      <div class="btns">
+        <a class="btn-acid" href="install.html">Install</a>
+        <a class="btn-acid cy" href="play/">Play online</a>
+        <a class="btn-acid lime" href="guide/">Guide</a>
+        <a class="btn-acid pk" href="cheatsheet/">Cheat sheet</a>
+      </div>
+    </div>
+    <svg class="face" viewBox="0 0 200 250" role="img" aria-label="A melting smiley face"><use href="#smile"/></svg>
   </div>
-  <div class="shots">
-    <img src="img/steps.png" alt="Steps">
-    <img src="img/fly.png" alt="Fly">
-    <img src="img/walk.png" alt="Walk">
-    <img src="img/play.png" alt="Play">
-    <img src="img/projects.png" alt="Projects">
+</header>
+
+<div class="ticker" aria-hidden="true"><div class="track">
+  <span>ACID</span><span>303</span><span>ACCENT</span><span>SLIDE</span><span>SQUELCH</span><span>RESONANCE</span><span>DEVIL FISH</span><span>ACID</span><span>303</span><span>ACCENT</span><span>SLIDE</span><span>SQUELCH</span><span>RESONANCE</span><span>DEVIL FISH</span><span>ACID</span><span>303</span><span>ACCENT</span><span>SLIDE</span><span>SQUELCH</span><span>RESONANCE</span><span>DEVIL FISH</span><span>ACID</span><span>303</span><span>ACCENT</span><span>SLIDE</span><span>SQUELCH</span><span>RESONANCE</span><span>DEVIL FISH</span>
+</div></div>
+
+<div class="corridor" aria-hidden="true"><div class="plane"></div><svg class="sun" viewBox="0 0 200 250"><use href="#smile"/></svg><div class="vig"></div></div>
+
+<section>
+  <div class="wrap">
+    <h2>Looks like this</h2>
+    <div class="shots">
+      <figure><img src="img/steps.png" alt="The steps view"><figcaption>Steps</figcaption></figure>
+      <figure><img src="img/fly.png" alt="The fly view"><figcaption>Fly</figcaption></figure>
+      <figure><img src="img/walk.png" alt="The walk view"><figcaption>Walk</figcaption></figure>
+      <figure><img src="img/play.png" alt="The play view"><figcaption>Play</figcaption></figure>
+      <figure><img src="img/projects.png" alt="The projects"><figcaption>Projects</figcaption></figure>
+    </div>
   </div>
-  <footer>GPL-3.0-only. Built on Felucca, SLOOP and Dinghy. See LICENSING.md.</footer>
-</main>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What is it</h2>
+    <p class="plain">A simple (to me) workflow for making acid patterns. Hit 'LFO' until you hear something you like, and then twist those knobs! Press <code>GLO</code> on the FM-1 any time and it explains itself.</p>
+    <p>Note: LFO just rolls the dice, it's not `Generative`, it's literally random. Sometimes you'll get something amazing, sometimes it'll sound like shit. This is exactly how it worked on the real devices!</p>
+    <p>You can, of course, fine tune it too! But it's way more fun hitting LFO and just allowing yourself to fall into something amazing.</p>
+  </div>
+</section>
+
+<section class="install">
+  <div class="wrap">
+    <div>
+      <h2>Get it on your FM-1</h2>
+      <ol>
+        <li>Plug the FM-1 into your computer.</li>
+        <li>Use Chrome or Edge.</li>
+        <li>Press the button. Don't unplug it till it's done.</li>
+      </ol>
+    </div>
+    <div class="big"><a class="btn-acid" href="install.html">Install</a><p style="margin:14px 0 0;font-weight:700">It's a beta. It's loud. It'll get better.</p></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">GPL-3.0-only. Built on <a href="https://github.com/hugelton/Felucca">Felucca</a>, SLOOP and <a href="https://github.com/pbarilla/chipbox">Chipbox</a>. <a href="https://github.com/pbarilla/smileyface">Source</a> · <a href="https://thefirmwarehub.com/">The Firmware Hub</a></div>
+</footer>
 </body>
 </html>
