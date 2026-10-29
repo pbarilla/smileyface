@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Play online · Chipbox</title>
-<meta name="description" content="Play Chipbox, the chiptune groovebox for the delightful FM-1">
+<title>Play online · Smileyface</title>
+<meta name="description" content="Play Smileyface, the acid bass line for the FM-1">
 <style>
   :root { --bg:#0e0e12; --panel:#181820; --deep:#101016; --ink:#e8e8ee; --dim:#8a8a9a; --red:#eb4034; --green:#a8cd1c; --blue:#46aaff; --line:#2a2a36; color-scheme:dark; }
   * { box-sizing:border-box; }
@@ -60,9 +60,9 @@
 <body>
 <main>
 <header>
-  <h1><a href="../">Chipbox</a><span class="tag">PLAY ONLINE</span></h1>
+  <h1><a href="../">Smileyface</a><span class="tag">PLAY ONLINE</span></h1>
 
-  <nav><a href="../">Home</a><a href="../install.html">Install</a><a href="https://github.com/pbarilla/chipbox">Source</a></nav>
+  <nav><a href="../">Home</a><a href="../install.html">Install</a><a href="https://github.com/pbarilla/smileyface">Source</a></nav>
 </header>
 
 <div class="devicebox">
@@ -79,11 +79,11 @@
 </div>
 
 </main>
-<script src="chipbox.js"></script>
+<script src="smileyface.js"></script>
 <script>
 (function () {
   "use strict";
-  var KEY = "chipbox-flash-1", NS = "http://www.w3.org/2000/svg";
+  var KEY = "smileyface-flash-1", NS = "http://www.w3.org/2000/svg";
   var $ = function (id) { return document.getElementById(id); };
   var mod = null, ctx = null, held = 0, master = 0.8, muted = false;
   var svg = $("panel"), btnEl = [], keyEl = [], knobEl = [], angle = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, m: 0 };
@@ -261,7 +261,7 @@
     hook(); m.onstatechange = hook;
   }).catch(function () {});
 
-  Chipbox().then(function (m) {
+  Smileyface().then(function (m) {
     mod = m; restore(); m._web_start();
     var gen = m._web_flash_gen();
     setInterval(function () { var n = m._web_flash_gen(); if (n !== gen) { gen = n; save(); } }, 1500);

@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* A fake FM-1 on a computer: the app (firmware/src/chipbox.c) runs unchanged on it. platform.c includes
- * this file instead of the hardware when CHIPBOX_HOST is set. A script presses keys over time; out come
+/* A fake FM-1 on a computer: the app (firmware/src/smileyface.c) runs unchanged on it. platform.c includes
+ * this file instead of the hardware when SMILEY_HOST is set. A script presses keys over time; out come
  * the screen (PPM, at the times SHOT asks) and the sound (WAV, as the FM-1 sends it over USB).
  *
  *   mkdir -p build/host
- *   cc -O2 -Wall -DCHIPBOX_HOST -Ifirmware/src -Ifirmware/gen -o build/host/chipbox firmware/src/chipbox.c
- *   build/host/chipbox build/host/chipbox        (-> build/host/chipbox.wav, build/host/chipbox-<ms>.ppm)
- *   build/host/chipbox OUT script.txt [FPS]    (your own script; with FPS: OUT-NNNNN.ppm, a frame every 1/FPS s:
+ *   cc -O2 -Wall -DSMILEY_HOST -Ifirmware/src -Ifirmware/gen -o build/host/smileyface firmware/src/smileyface.c
+ *   build/host/smileyface build/host/smileyface        (-> build/host/smileyface.wav, build/host/smileyface-<ms>.ppm)
+ *   build/host/smileyface OUT script.txt [FPS]    (your own script; with FPS: OUT-NNNNN.ppm, a frame every 1/FPS s:
  *                                             a film of your firmware, e.g. ffmpeg -r 30 -i OUT-%05d.ppm ...)
  *
  * Change SCRIPT below to try your own app. */
@@ -14,12 +14,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef CHIPBOX_WEB
+#ifdef SMILEY_WEB
 #include <emscripten.h>
 #endif
 
 #ifndef APP_NAME
-#define APP_NAME "CHIPBOX"
+#define APP_NAME "SMILEYFACE"
 #endif
 #ifndef APP_VER
 #define APP_VER "0.0"
@@ -107,7 +107,7 @@ static int settings_save(const void *p, uint32_t n)
     host_store[0] = 1;
     memcpy(host_store + 4, p, n);
     host_gen++;
-#ifndef CHIPBOX_WEB
+#ifndef SMILEY_WEB
     printf("%6u ms  settings saved (%u B)\n", fm1_ms, n);
 #endif
     return 0;
@@ -122,7 +122,7 @@ static int midi_get(uint8_t *st, uint8_t *d1, uint8_t *d2)
     mq_r++;
     return 1;
 }
-#ifdef CHIPBOX_WEB
+#ifdef SMILEY_WEB
 static void midi_send(uint32_t st, uint32_t d1, uint32_t d2) { (void)st; (void)d1; (void)d2; }
 #else
 static void midi_send(uint32_t st, uint32_t d1, uint32_t d2) { printf("%6u ms  MIDI out %02X %u %u\n", fm1_ms, st, d1, d2); }
@@ -131,7 +131,7 @@ static void midi_send(uint32_t st, uint32_t d1, uint32_t d2) { printf("%6u ms  M
 static void app_audio(int32_t *out, uint32_t n);
 static void app_main(void);
 
-#ifdef CHIPBOX_WEB
+#ifdef SMILEY_WEB
 /* in the browser (web/build.sh): the page feeds the keys, buttons and knobs, pulls the sound and draws the screen; platform_poll gives the browser its turn */
 static volatile uint32_t web_go;
 static void platform_poll(void)
@@ -222,7 +222,7 @@ static void read_script(const char *path)
     script_n = n;
 }
 
-static const char *host_out = "build/host/chipbox";
+static const char *host_out = "build/host/smileyface";
 static int16_t *wav;
 static uint32_t wav_n;
 

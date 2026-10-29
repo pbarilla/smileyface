@@ -4,7 +4,7 @@
 import { Updater } from "./fm1ota.js";
 import { productOf, logicalImage, sha256hex } from "./fm1pkg.js";
 
-const PRODUCT = "FM-1_337";                     // the identity Chipbox reports (tools/build.py)
+const PRODUCT = "FM-1_303";                     // the identity Smileyface reports (tools/build.py)
 const $ = (id) => document.getElementById(id);
 
 const TEXT = {
@@ -43,7 +43,7 @@ window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault
     const pkg = new Uint8Array(await r.arrayBuffer());
     if (await sha256hex(pkg) !== meta.sha256 || productOf(pkg) !== PRODUCT) { say("badpkg"); return; }
     image = logicalImage(pkg);
-    $("version").textContent = "Chipbox " + meta.version;
+    $("version").textContent = "Smileyface " + meta.version;
     say("");
     $("go").disabled = false;
   } catch (e) { say("loadfail", e.message); }

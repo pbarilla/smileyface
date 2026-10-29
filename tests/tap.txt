@@ -1,0 +1,14 @@
+# tap tempo at about 100 bpm (600 ms), then copy a pattern from the picker
+500 btn 11
+1100 btn 11
+1700 btn 11
+2300 btn 11
+2400 shot
+2500 held 0x100
+3300 held 0
+3400 enc 0 2
+3500 held 0x8
+4300 held 0
+4400 shot
+4500 held 0
+5000 end

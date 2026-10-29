@@ -1,6 +1,4 @@
 {
-  "what": "A ultra-refined Chiptune music editor, featuring over 35 classic chips such as NES, Gameboy, heck even the Sunsoft 5B! Gimmick fans rejoice!",
-  "kinds": ["groove", "synth", "drums"],
-  "play": "https://ihavenocluewhatimdoing.com/chipbox/play/",
-  "editor": "https://ihavenocluewhatimdoing.com/chipbox/projects/"
+  "what": "An acid bass line for the FM-1: one 303-style voice, sixteen steps, accent and slide, a Devilfish-style sound page, and a ship you fly to write notes.",
+  "kinds": ["synth", "groove"]
 }

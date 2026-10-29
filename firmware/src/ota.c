@@ -40,7 +40,7 @@ static int ota_fread(uint32_t off, void *p, uint32_t n);
 static void ota_show(uint32_t step, int32_t code);
 static void ota_commit(const uint8_t *parm);
 #ifdef OTA_PROJ_IO
-static void app_install_mark(void);             /* the app notes that an install is about to replace it (chipbox.c) */
+static void app_install_mark(void);             /* the app notes that an install is about to replace it (smileyface.c) */
 #endif
 #ifdef OTA_PROJ_IO
 static void proj_io(uint32_t cmd, const uint8_t *body, uint32_t n);     /* the app's (projio.c): projects over SysEx */

@@ -1,6 +1,8 @@
-200 shot
-450 shot
-800 shot
-1200 shot
-1450 shot
-1700 end
+# the power-on smiley (build with -DSPLASH_DEMO)
+100 shot
+300 shot
+500 shot
+700 shot
+900 shot
+1100 shot
+1500 end

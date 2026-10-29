@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* Chipbox's platform: everything an FM-1 firmware needs before it can be fun, taken unchanged from
+/* Smileyface's platform: everything an FM-1 firmware needs before it can be fun, taken unchanged from
  * SLOOP / Felucca / sloopDX and wired up here. You should not need to touch this file.
  *
  *   boot + boot guard   a firmware that crashes at boot falls back to the USB rescue, then to the ROM
@@ -12,7 +12,7 @@
  *   settings            one 4 KiB flash sector with a CRC (settings_load / settings_save)
  *   crash screen        the PC of a fault, then a reboot
  *
- * The app (chipbox.c) includes this file first and supplies:
+ * The app (smileyface.c) includes this file first and supplies:
  *   static void app_audio(int32_t *out, uint32_t n)   audio ISR: n stereo frames, L R L R, Q15 (+-32767), out is zero
  *   static void app_main(void)                        never returns; calls platform_poll() often (every few ms)
  */
@@ -30,7 +30,7 @@ enum { ENC_SELECT = 0, ENC_ALGORITHM = 1, ENC_KNOB1 = 2, ENC_KNOB2 = 3, ENC_KNOB
 #define PROJ_DEMOS 2u                           /* the first two slots are the demos: Korobeiniki and the console symphony */
 #define PROJ_LEN (PROJ_SLOTS * 2u * PROJ_BANK)
 
-#ifdef CHIPBOX_HOST
+#ifdef SMILEY_HOST
 #include "../../tests/host.c"                  /* on a computer: a fake FM-1 (tests/host.c) */
 #else
 #include <stdint.h>
@@ -46,10 +46,10 @@ enum { ENC_SELECT = 0, ENC_ALGORITHM = 1, ENC_KNOB1 = 2, ENC_KNOB2 = 3, ENC_KNOB
 #include "bootguard.h"
 
 #ifndef APP_NAME
-#define APP_NAME "CHIPBOX"
+#define APP_NAME "SMILEYFACE"
 #endif
 #ifndef FELUCCA_ID
-#define FELUCCA_ID "FM-1_337"                   /* package identity (tools/build.py) */
+#define FELUCCA_ID "FM-1_303"                   /* package identity (tools/build.py) */
 #endif
 #ifndef APP_VER
 #define APP_VER "0.0"

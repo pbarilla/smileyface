@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Node check of the site's installer (site/js/fm1ota.js, fm1pkg.js) against a simulated FM-1: no browser, no hardware.
-//   node tests/web_installer.mjs [package.fwsc]       (default: build/chipbox.fwsc)
+//   node tests/web_installer.mjs [package.fwsc]       (default: build/smileyface.fwsc)
 // The simulated device (the update loader is "Felucca Update", identity ota-FM-1_900, as firmware/loader/loader.c) is after Felucca's web/test_web.mjs (Copyright (C) 2026 Leo Kuroshita, Hügelton Instruments, GPL-3.0-only).
 import { existsSync, readFileSync } from "node:fs";
 import { logicalImage, productOf, sha256hex } from "../site/js/fm1pkg.js";
@@ -68,12 +68,12 @@ class FakeFM1 {
   }
 }
 
-const path = process.argv[2] || new URL("../build/chipbox.fwsc", import.meta.url).pathname;
+const path = process.argv[2] || new URL("../build/smileyface.fwsc", import.meta.url).pathname;
 if (!existsSync(path)) { console.log(`skipped: no package at ${path} (run ./build.sh first)`); process.exit(0); }
 const raw = new Uint8Array(readFileSync(path));
 const product = productOf(raw);
 const image = logicalImage(raw);
-ok(product === "FM-1_337", `the package says ${product}`);
+ok(product === "FM-1_303", `the package says ${product}`);
 ok(image.length === raw.length - 20, "logicalImage drops the 20 marker bytes");
 ok((await sha256hex(raw)).length === 64, "sha256hex");
 

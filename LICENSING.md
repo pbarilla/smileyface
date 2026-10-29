@@ -1,6 +1,6 @@
 # Licensing
 
-Chipbox is free software under the GNU General Public License, version 3 only (`GPL-3.0-only`, full text in
+Smileyface is free software under the GNU General Public License, version 3 only (`GPL-3.0-only`, full text in
 `LICENSE`). You may use, study, change and share it. If you give someone a firmware built from it, give them its
 complete source under the same licence too.
 
@@ -11,7 +11,7 @@ complete source under the same licence too.
 | The platform: `firmware/hal/`, `firmware/loader/`, `crt0.S`, `app.ld`, `firmware/src/` (`usb.c`, `ota.c`, `recovery.c`, `lcd.c`, `gfx.c`, `libc.c`, `bootguard.h`, `uac_fir.h`), `tools/` | Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments ([Felucca](https://github.com/hugelton/Felucca)), with the changes of [SLOOP](https://github.com/isod89/sloop-fm1) (isod89) |
 | The browser installer `site/js/fm1ota.js` and `site/js/fm1pkg.js` (unchanged), and what `site/js/install.js` follows | Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments ([Felucca](https://github.com/hugelton/Felucca), GPL-3.0-only) |
 | The wiring `platform.c`, the host mode `tests/host.c`, the docs, from Dinghy                                                                                                              | zvenson                                                                                                                                                                                           |
-| Chipbox itself: `chipbox.c`, `chips.c`, `seq.c`, `proj.c`, `rack.c`, `chipview.c`, `menu.c`, `picker.c`, `tests/` scripts, `site/`                                                        | pbarilla                                                                                                                                                                                          |
+| Smileyface itself: `smileyface.c`, `voice.c`, `tests/` scripts, `tools/gen_acid_tables.py`, `site/` (the app began as Chipbox's, by pbarilla) | pbarilla |
 
 ## Third-party material
 
@@ -23,4 +23,4 @@ complete source under the same licence too.
 ## Trademarks
 
 "Felucca" and "Hügelton Instruments" are names of Hügelton Instruments; "M-VAVE" and "FM-1" belong to their
-owners. Chipbox is not made or endorsed by them.
+owners. Smileyface is not made or endorsed by them.

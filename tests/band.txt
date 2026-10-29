@@ -1,6 +1,0 @@
-100 btn 2
-300 shot
-450 shot
-1000 btn 2
-1250 shot
-1700 end

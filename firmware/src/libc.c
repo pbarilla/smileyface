@@ -19,7 +19,7 @@ void *memcpy(void *d, const void *s, unsigned n)
     return d;
 }
 
-void *memmove(void *d, const void *s, unsigned n)      /* (Chipbox: shifting the channel list) */
+void *memmove(void *d, const void *s, unsigned n)      /* (used by the compiler for struct moves) */
 {
     unsigned char *p = d;
     const unsigned char *q = s;
