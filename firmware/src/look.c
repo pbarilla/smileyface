@@ -34,21 +34,28 @@ static void ellipse(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t c)
 static int32_t cosa(uint32_t a) { return SIN64[(a + 16u) & 63u]; }
 static int32_t sina(uint32_t a) { return SIN64[a & 63u]; }
 
-/* the smiley: eyes slide with the beat and the mouth grins wider on an accent.
- * The mouth is a parabola drawn a column at a time, so it stays smooth at any size. */
+/* the smiley: eyes slide with the beat and the mouth grins wider on an accent. The mouth is a parabola drawn a column at a time, so it stays smooth at any size. */
 static void smiley(int32_t cx, int32_t cy, int32_t r, int32_t grin, int32_t look)
 {
-    int32_t x, w = r * 3 / 5, dep = r / 3 + 1 + grin / 2, y0 = cy + r / 5 - grin / 4, t = r / 10 + 2;
+    int32_t x, rx = (r * 140 + 500) / 1000, ry = (r * 270 + 500) / 1000, ex = r * 370 / 1000, ey = r * 380 / 1000;
+    int32_t w = r * 680 / 1000, t = (r * 12 + 50) / 100, dep = r * 360 / 1000 + grin / 2, y0 = cy + r * 300 / 1000 - grin / 4 - t / 2;
+    if (rx < 1) rx = 1;
+    if (ry < 2) ry = 2;
+    if (t < 2) t = 2;
     disc(cx, cy, r + 2, C_K);
     disc(cx, cy, r, C_Y);
-    ellipse(cx - r / 3 + look, cy - r / 4 - 1, r / 7 + 1, r / 3, C_K);
-    ellipse(cx + r / 3 + look, cy - r / 4 - 1, r / 7 + 1, r / 3, C_K);
-    for (x = -w; x <= w; x++) {                                 /* the mouth */
-        int32_t y = y0 + (dep * (w * w - x * x) + w * w / 2) / (w * w);       /* (rounded: no bump at the middle) */
-        cv_rect(cx + x, y, 1, t, C_K);
+    ellipse(cx - ex + look, cy - ey, rx, ry, C_K);
+    ellipse(cx + ex + look, cy - ey, rx, ry, C_K);
+    if (t >= 4) {                                               /* a big one: a disc stamped along the curve, so the line is even and the ends are round */
+        for (x = -w; x <= w; x++) disc(cx + x, (y0 * 16 + (dep * 16 * (w * w - x * x) + w * w / 2) / (w * w) + 8 * t) / 16, t / 2, C_K);
+        return;
     }
-    cv_rect(cx - w - 1, y0 - 1, 2, t, C_K);                     /* the corners curl up a little */
-    cv_rect(cx + w, y0 - 1, 2, t, C_K);
+    for (x = -w; x <= w; x++) {                                 /* a small one: columns, as tall as the line is where it is steep */
+        int32_t f0 = y0 * 16 + (dep * 16 * (w * w - (x - 1) * (x - 1))) / (w * w), f1 = y0 * 16 + (dep * 16 * (w * w - (x + 1) * (x + 1))) / (w * w);
+        int32_t fc = y0 * 16 + (dep * 16 * (w * w - x * x) + w * w / 2) / (w * w), sl = (f1 > f0 ? f1 - f0 : f0 - f1) * 100 / 32;
+        int32_t th = (t * isqrt(10000 + sl * sl) + 50) / 100, top = (fc + 8 * t - th * 8 + 8) / 16;               /* (rounded all through, so no one pixel nubs) */
+        cv_rect(cx + x, top, 1, th < 1 ? 1 : th, C_K);
+    }
 }
 
 static void utoa3(char *s, uint32_t v)
