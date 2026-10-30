@@ -337,7 +337,6 @@ static void scene_walk(void)
             cv_rect(x0, y, x1 - x0 + 1, 1, c);
         }
     }
-    smiley(120, WHZ - 6, 12, 0, 0);                       /* the sun at the end of the corridor */
     for (k = 9; k >= 0; k--) {                                  /* the steps coming, far ones first */
         int32_t si = (pos + k) % len, dz = k * 40 + 40 - fr * 40 / 256 + 10, lane;
         const step_t s = PAT[si];
