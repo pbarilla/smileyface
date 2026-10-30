@@ -19,14 +19,8 @@
              text-shadow:4px 4px 0 var(--pink), 8px 8px 0 var(--cy); }
   .hero p { font-size:19px; max-width:24em; margin:18px 0 22px; font-weight:700; }
   .hero .btns { display:flex; flex-wrap:wrap; gap:14px; }
-  .face { flex:none; width:clamp(150px, 28vw, 270px); aspect-ratio:200/270; height:auto; animation:sway 5s ease-in-out infinite; transform-origin:50% 90%; filter:drop-shadow(8px 8px 0 #000); }
+  .face { flex:none; width:clamp(150px, 28vw, 270px); aspect-ratio:1; height:auto; animation:sway 5s ease-in-out infinite; transform-origin:50% 90%; filter:drop-shadow(8px 8px 0 #000); }
   @keyframes sway { 0%, 100% { transform:rotate(-5deg); } 50% { transform:rotate(5deg); } }
-  /* a drip: the stem stretches from the face, the bulb rides its end (the stem is 56 tall, so the bulb moves 56 x (scale - 1)) */
-  .stem { transform-box:fill-box; transform-origin:50% 0; animation:stem 3.6s ease-in-out infinite; }
-  .bulb { animation:bulb 3.6s ease-in-out infinite; }
-  .b { animation-delay:-1.2s; } .c { animation-delay:-2.4s; }
-  @keyframes stem { 0%, 100% { transform:scaleY(.45); } 50% { transform:scaleY(1.3); } }
-  @keyframes bulb { 0%, 100% { transform:translateY(-31px); } 50% { transform:translateY(17px); } }
   .eye { transform-box:fill-box; transform-origin:50% 50%; animation:blink 6s infinite; }
   @keyframes blink { 0%, 94%, 100% { transform:scaleY(1); } 96% { transform:scaleY(.1); } }
 
@@ -41,7 +35,7 @@
   .plane { position:absolute; left:-80%; right:-80%; top:36%; bottom:-120%; transform-origin:50% 0; transform:rotateX(68deg);
            background-image:conic-gradient(#ffee00 25%, #1a1a00 0 50%, #ffee00 0 75%, #1a1a00 0); background-size:120px 120px; animation:walk 1.6s linear infinite; }
   @keyframes walk { to { background-position:0 120px; } }
-  .corridor .sun { position:absolute; left:50%; top:6px; width:78px; height:105px; margin-left:-39px; }
+  .corridor .sun { position:absolute; left:50%; top:6px; width:84px; height:84px; margin-left:-42px; }
   .corridor .vig { position:absolute; inset:0; background:linear-gradient(#000 0, transparent 30%, transparent 70%, #000 100%), radial-gradient(ellipse at 50% 38%, transparent 30%, rgba(0,0,0,.7) 100%); pointer-events:none; }
 
   section { padding:44px 0; }
@@ -77,22 +71,9 @@
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="smile" viewBox="0 0 200 270">
-    <defs>
-      <path id="stem" d="M-27 -6 C-17 4 -14 12 -12 26 L-9 56 L9 56 L12 26 C14 12 17 4 27 -6 Z"/>
-    </defs>
-    <g fill="#ffee00" stroke="#000" stroke-width="18" stroke-linejoin="round">
-      <circle cx="100" cy="100" r="88"/>
-      <g transform="translate(58 157)"><use href="#stem" class="stem a"/><circle class="bulb a" cx="0" cy="56" r="14"/></g>
-      <g transform="translate(108 168)"><use href="#stem" class="stem b"/><circle class="bulb b" cx="0" cy="56" r="14"/></g>
-      <g transform="translate(140 158)"><use href="#stem" class="stem c"/><circle class="bulb c" cx="0" cy="56" r="14"/></g>
-    </g>
-    <g fill="#ffee00">
-      <circle cx="100" cy="100" r="88"/>
-      <g transform="translate(58 157)"><use href="#stem" class="stem a"/><circle class="bulb a" cx="0" cy="56" r="14"/></g>
-      <g transform="translate(108 168)"><use href="#stem" class="stem b"/><circle class="bulb b" cx="0" cy="56" r="14"/></g>
-      <g transform="translate(140 158)"><use href="#stem" class="stem c"/><circle class="bulb c" cx="0" cy="56" r="14"/></g>
-    </g>
+  <symbol id="smile" viewBox="0 0 200 200">
+    <circle cx="100" cy="100" r="94" fill="#000"/>
+    <circle cx="100" cy="100" r="85" fill="#ffee00"/>
     <ellipse class="eye" cx="68" cy="78" rx="13" ry="25" fill="#000"/>
     <ellipse class="eye" cx="132" cy="78" rx="13" ry="25" fill="#000"/>
     <path d="M40 120 Q100 188 160 120" fill="none" stroke="#000" stroke-width="12" stroke-linecap="round"/>
@@ -112,7 +93,7 @@
         <a class="btn-acid pk" href="cheatsheet/">Cheat sheet</a>
       </div>
     </div>
-    <svg class="face" viewBox="0 0 200 270" role="img" aria-label="A melting smiley face"><use href="#smile"/></svg>
+    <svg class="face" viewBox="0 0 200 200" role="img" aria-label="A melting smiley face"><use href="#smile"/></svg>
   </div>
 </header>
 
@@ -120,7 +101,7 @@
   <span>ACID</span><span>303</span><span>ACCENT</span><span>SLIDE</span><span>SQUELCH</span><span>RESONANCE</span><span>DEVIL FISH</span><span>ACID</span><span>303</span><span>ACCENT</span><span>SLIDE</span><span>SQUELCH</span><span>RESONANCE</span><span>DEVIL FISH</span><span>ACID</span><span>303</span><span>ACCENT</span><span>SLIDE</span><span>SQUELCH</span><span>RESONANCE</span><span>DEVIL FISH</span><span>ACID</span><span>303</span><span>ACCENT</span><span>SLIDE</span><span>SQUELCH</span><span>RESONANCE</span><span>DEVIL FISH</span>
 </div></div>
 
-<div class="corridor" aria-hidden="true"><div class="plane"></div><svg class="sun" viewBox="0 0 200 270"><use href="#smile"/></svg><div class="vig"></div></div>
+<div class="corridor" aria-hidden="true"><div class="plane"></div><svg class="sun" viewBox="0 0 200 200"><use href="#smile"/></svg><div class="vig"></div></div>
 
 <section>
   <div class="wrap">
