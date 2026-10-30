@@ -1,0 +1,29 @@
+# GLO + HOME: the menu. Roll The Dice (an early let-go does nothing, a full hold rolls), then Factory Reset
+300 held 0x180
+400 held 0
+500 shot
+600 enc 0 1
+700 shot
+800 btn 1
+900 shot
+1000 held 0x2
+1400 held 0
+1500 shot
+1600 held 0x2
+2000 shot
+3300 held 0
+3400 shot
+3500 held 0x100
+3550 held 0
+3600 held 0x100
+3650 held 0
+3700 held 0x100
+3750 held 0
+3900 shot
+4000 held 0x180
+4100 held 0
+4200 btn 1
+4300 shot
+4400 btn 1
+4600 shot
+5000 end

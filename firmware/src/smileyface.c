@@ -2,6 +2,7 @@
 /* Smileyface: an acid bass line for the FM-1. One voice, 16 steps, 16 patterns a project, knobs to twist.
  *
  *   GLO              the manual, at the chapter for where you are (GLO again: the contents, HOME leaves)
+ *   GLO + HOME       the menu (either first): Factory Reset, Roll The Dice (every pattern random; hold OCT+ to confirm)
  *   HOME             tap: STEPS -> FLY -> WALK -> PLAY          hold: the 12 projects (HOME opens, hold SEL copies, hold EDIT starts over, GLO: help, OCT- leaves)
  *   keys             STEPS: write a note on the cursor's step and move on (ENV or SEL held: an accent, a slide)
  *                    PLAY: a white key cues a pattern (several make a chain)     FLY, WALK: every key shoots
@@ -14,7 +15,7 @@
  *   PLAY             start / stop      SEQ   tap tempo      LFO   a random pattern      ARP   nudge a few steps      REC   undo (one level)
  *   OCT- OCT+        octave      SAVE   save (it also saves 2 s after an edit, when stopped)      MASTER   volume
  *   USB-MIDI         clock, start, stop and continue are followed (the tempo turns cyan); notes play the voice (velocity 100 and up = accent);
- *                    CC 102 play / stop, 103 tempo / 2, 104 save, 105 random pattern, 106 open project 0..11, 108 pattern 0..15 (cued while it plays),
+ *                    CC 102 play / stop, 103 tempo / 2, 104 save, 105 random pattern, 106 open project 0..11, 110 factory reset, 111 roll the dice, 108 pattern 0..15 (cued while it plays),
  *                    74 75 71 72 = CUT ENV RES DEC. The device sends CC 100 = CPU % (worst block since boot), CC 101 = view | 16 unsaved | 32 playing | 64 projects,
  *                    CC 107 = the open project, CC 109 = the pattern
  *
@@ -38,6 +39,7 @@ static void app_audio(int32_t *out, uint32_t n)
 #include "look.c"
 #include "views.c"
 #include "manual.c"
+#include "menu.c"
 
 static void paint(uint32_t y0, uint32_t y1)                     /* rows y0 .. y1 of the screen */
 {
@@ -47,6 +49,7 @@ static void paint(uint32_t y0, uint32_t y1)                     /* rows y0 .. y1
         cv_oy = -(int32_t)y0;
         if (man_on) scene_man();
         else if (pick_on) scene_pick();
+        else if (menu_on) { if (y0 < Y_HDR) scene_head(); if (y0 + h > Y_HDR && y0 < Y_LOW - 4u) { if (view_now == V_STEPS) scene_steps(); else if (view_now == V_FLY) scene_fly(); else if (view_now == V_WALK) scene_walk(); else scene_play(); } if (y0 + h > Y_LOW - 4u) scene_low(); scene_menu(); }
         else {
             if (y0 < Y_HDR) scene_head();
             if (y0 + h > Y_HDR && y0 < Y_LOW - 4u) {
@@ -63,7 +66,7 @@ static void paint(uint32_t y0, uint32_t y1)                     /* rows y0 .. y1
     }
 }
 
-/* ---- power on: a big smiley, grinning, then melting */
+/* ---- power on: a big smiley, grinning, looking about */
 static void splash(void)
 {
     uint32_t f, y0;
@@ -73,7 +76,7 @@ static void splash(void)
             cv_begin(240, 60, C_K);
             cv_oy = -(int32_t)y0;
             floor_rows(0, 240, 2 + (int32_t)f, f * 6u);
-            smiley(120, 92, 56, f < 6u ? 0 : (int32_t)(f - 6u) * 5, f * 3u, f < 6u ? (int32_t)f * 2 : 8, (int32_t)sina(f * 3u) / 40);
+            smiley(120, 92, 56, f < 14u ? (int32_t)f : 14 - (int32_t)(f - 14u), (int32_t)sina(f * 3u) / 20);
             cv_oy = 0;
             cv_blit(0, y0);
         }
@@ -90,7 +93,7 @@ static void pat_pick(uint32_t p)                                /* a pattern: no
 
 static void app_main(void)
 {
-    uint32_t keys, prev = 0, hb_ms = 0, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0, fresh;
+    uint32_t keys, prev = 0, hb_ms = 0, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
     uint32_t ext_ms = 0, tap_last = 0, tap_n = 0, tap_k = 0, tap_iv[4] = {0}, sel_was = 0, sel_t0 = 0, sel_used = 0;
     uint32_t home_was = 0, home_t0 = 0, home_used = 0, edit_was = 0, edit_t0 = 0, edit_used = 0, sel_was2 = 0, sel_rot = 0, sel_keyed = 0;
     int32_t e;
@@ -99,18 +102,13 @@ static void app_main(void)
     splash();
 #endif
     bank_load();
-    fresh = settings_load(&cfg, sizeof cfg) != 0 || cfg.magic != SET_OK;                 /* a new device, or a new firmware that wants its quick start */
-    if (fresh) { cfg.slot = 0; cfg.oct = 1; cfg.view = 0; cfg.magic = SET_OK; }
+    if (settings_load(&cfg, sizeof cfg) != 0 || cfg.magic != SET_OK) {                  /* a new device, or a new firmware */ cfg.slot = 0; cfg.oct = 1; cfg.view = 0; cfg.magic = SET_OK; }
     if (cfg.slot >= SLOTS) cfg.slot = 0;
     if (cfg.oct > 3u) cfg.oct = 1;
     view_now = cfg.view < VIEWS ? cfg.view : 0u;
     slot_load(cfg.slot);
-    for (k = 0; k < SLOTS; k++) if (bank.s[k].used) fresh = 0;
-#if !defined(SMILEY_HOST) || defined(QUICK_DEMO)
-    if (fresh) { man_open(MC_QUICK, 0); man_lock = 1; cfg_dirty = 1; t_change = fm1_ms; }
-#endif
     for (;;) {
-        uint32_t b, rel, down, up, home_now, edit_now, sel_now, env_now;
+        uint32_t b, rel, down, up, home_now, edit_now, sel_now, env_now, glo_now;
         platform_poll();
         b = fm1_input_edges(&rel);
         {
@@ -129,6 +127,8 @@ static void app_main(void)
                     else if (d1 == 104u) { slot_save(); dirty = 0; }
                     else if (d1 == 105u) { undo_save(); random_pattern(); dirty = 1; t_change = fm1_ms; redraw |= 7; }
                     else if (d1 == 106u && d2 < SLOTS) { if (dirty) slot_save(); dirty = 0; slot_load(d2); cfg.slot = (uint8_t)d2; cfg_dirty = 1; t_change = fm1_ms; redraw |= 7; }
+                    else if (d1 == 110u) { factory_reset(); dirty = cfg_dirty = 0; redraw |= 7; }
+                    else if (d1 == 111u) { roll_dice(); dirty = 0; redraw |= 7; }
                     else if (d1 == 108u && d2 < PATS) { pat_pick(d2); redraw |= 7; }
                     else if (d1 == 74u) { kn.cut = (uint8_t)(d2 >> 2); redraw |= 6; }
                     else if (d1 == 75u) { kn.env = (uint8_t)(d2 >> 2); redraw |= 6; }
@@ -151,12 +151,17 @@ static void app_main(void)
         prev = keys;
         home_now = fm1_in.buttons >> BTN_HOME & 1u;
         edit_now = fm1_in.buttons >> BTN_EDIT & 1u;
+        glo_now = fm1_in.buttons >> BTN_GLO & 1u;
         sel_now = fm1_in.buttons >> BTN_SEL & 1u;
         env_now = fm1_in.buttons >> BTN_ENV & 1u;
-        if (home_now && !home_was) { home_t0 = fm1_ms; home_used = 0; }
-        if (home_now && !home_used && fm1_ms - home_t0 >= 600u && !pick_on && !man_on) { home_used = 1; pick_on = 1; pick_sel = slot_cur; redraw |= 7; }     /* hold HOME: the projects */
+        if (home_now && !home_was) {
+            home_t0 = fm1_ms; home_used = 0;
+            if (glo_now && !menu_on) { menu_on = 1; menu_sel = 0; man_on = 0; man_lock = 0; pick_on = 0; home_used = 1; redraw |= 7; }          /* GLO + HOME: the menu */
+        }
+        if (home_now && !home_used && fm1_ms - home_t0 >= 600u && !pick_on && !man_on && !menu_on) { home_used = 1; pick_on = 1; pick_sel = slot_cur; redraw |= 7; }     /* hold HOME: the projects */
         if (!home_now && home_was && !home_used) {                                                        /* tap HOME: leave what is open, open the project in the frame, or the next view */
-            if (man_on) { man_on = 0; man_lock = 0; }
+            if (menu_on) { menu_on = 0; dice_t0 = 0; dice_prog = 0; }
+            else if (man_on) { man_on = 0; man_lock = 0; }
             else if (pick_on) {
                 if (dirty) slot_save();
                 dirty = 0; slot_load(pick_sel); cfg.slot = (uint8_t)pick_sel; cfg_dirty = 1; t_change = fm1_ms; pick_on = 0;
@@ -165,10 +170,40 @@ static void app_main(void)
             redraw |= 7;
         }
         home_was = home_now;
-        if (b & (1u << BTN_GLO) && !man_on) {                                                              /* the manual, at the chapter for where you are */
+        if (b & (1u << BTN_GLO) && home_now && !menu_on) { menu_on = 1; menu_sel = 0; man_on = 0; man_lock = 0; pick_on = 0; home_used = 1; redraw |= 7; b &= ~(1u << BTN_GLO); }       /* HOME first, then GLO: the menu */
+        if (b & (1u << BTN_GLO) && !man_on && !menu_on) {                                                              /* the manual, at the chapter for where you are */
             man_open(pick_on ? MC_PROJ : view_now == V_STEPS ? MC_STEPS : view_now == V_FLY ? MC_FLY : view_now == V_WALK ? MC_WALK : MC_PLAY, 0u);
             redraw |= 7;
             b &= ~(1u << BTN_GLO);
+        }
+        if (menu_on) {
+            uint32_t oct_up = fm1_in.buttons >> BTN_OCT_UP & 1u;
+            e = fm1_enc_take(ENC_SELECT) + fm1_enc_take(ENC_PRESETS);
+            for (k = 0; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
+            fm1_enc_take(ENC_ALGORITHM);
+            if (menu_on == 1u) {
+                if (e) { menu_sel = e > 0 ? 1u : 0u; redraw |= 7; }
+                if (b & (1u << BTN_OCT_UP)) { menu_on = 2u + menu_sel; dice_t0 = dice_prog = dice_armed = 0; redraw |= 7; }
+                if (b & (1u << BTN_OCT_DOWN)) { menu_on = 0; redraw |= 7; }
+            } else if (menu_on == 2u) {
+                if (b & (1u << BTN_OCT_UP)) { factory_reset(); dirty = cfg_dirty = 0; menu_on = 0; redraw |= 7; }
+                else if (b & (1u << BTN_OCT_DOWN)) { menu_on = 1; redraw |= 7; }
+            } else {                                                                                  /* Roll The Dice: hold OCT+ (let go of it first: it was pressed to get here) */
+                if (b & (1u << BTN_OCT_DOWN)) { menu_on = 1; dice_t0 = dice_prog = 0; redraw |= 7; }
+                else if (!oct_up) { dice_armed = 1; dice_t0 = 0; if (dice_prog) { dice_prog = 0; redraw |= 7; } }
+                else if (dice_armed) {
+                    if (!dice_t0) dice_t0 = fm1_ms ? fm1_ms : 1u;
+                    dice_prog = (fm1_ms - dice_t0) * 100u / DICE_MS;
+                    redraw |= 7;
+                    if (dice_prog >= 100u) { roll_dice(); dirty = 0; menu_on = 0; dice_t0 = dice_prog = 0; }
+                }
+            }
+            if (b & (1u << BTN_PLAY)) { if (seq_run) seq_stop(); else seq_play(); }
+            edit_was = edit_now; sel_was = sel_now;
+            fm1_led_key(BTN_PLAY, seq_run);
+            fm1_led_key(BTN_OCT_UP, menu_on != 0u); fm1_led_key(BTN_OCT_DOWN, menu_on != 0u);
+            if (redraw && fm1_ms - last_draw >= 30u) { paint(0, 240); last_draw = fm1_ms; redraw = 0; }
+            continue;
         }
         if (man_on) {
             man_input(b);

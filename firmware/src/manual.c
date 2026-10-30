@@ -12,12 +12,8 @@ typedef struct { const char *topic; uint32_t ring; const char *text; } mpage_t;
 typedef struct { const char *name; uint16_t col; const mpage_t *page; uint8_t n; } mchap_t;
 
 static const mpage_t MP_QUICK[] = {
-    {"", M_GLO | M_SELECT | M_HOME | M_SMALL, "Press GLO at any time to open this manual. Turn SELECT to flip through the pages. Press HOME to close it."},
-    {"", M_KEYS | M_PLAY | M_SMALL, "Press a key to write a note. Press PLAY to hear your pattern. You're making acid already."},
-    {"", M_KNOBS | M_ALGO | M_SMALL, "Turn KNOB 1 to 4 to twist the sound while it plays. Turn ALGORITHM to reach more knobs."},
-    {"", M_LFO | M_REC | M_SMALL, "Press LFO for a random pattern. It might rule, it might not. Press REC to undo."},
-    {"", M_HOME | M_SMALL, "Tap HOME to hop between STEPS, FLY, WALK and PLAY. Hold HOME to open your projects."},
-    {"", M_NOPANEL, "Press GLO any time you get lost. Have fun, and make something rad!"},
+    {"", M_LFO | M_SMALL, "Hit LFO until you find something you like."},
+    {"", M_ALGO | M_KNOBS | M_SMALL, "Twist ALGORITHM to view all the knobs and switches."},
 };
 static const mpage_t MP_STEPS[] = {
     {"Write", M_KEYS, "Press a key to write a note on the cursor's step. The cursor hops on to the next step."},
@@ -63,6 +59,7 @@ static const mpage_t MP_PLAY[] = {
 static const mpage_t MP_PROJ[] = {
     {"Open", M_HOME | M_SELECT, "Hold HOME to open your projects. Turn SELECT to pick one, then press HOME to open it."},
     {"Copy and clear", M_SEL | M_EDIT, "Hold SEL on a project to copy it into a free spot. Hold EDIT to start it over."},
+    {"Menu", M_GLO | M_HOME, "Press GLO and HOME together for the menu. Factory Reset starts over. Roll The Dice fills every pattern with random notes."},
     {"Save", M_SAVE, "Press SAVE to save. Stop touching it for two seconds and it saves by itself."},
 };
 #define MC(n, c, p) {n, c, p, sizeof p / sizeof p[0]}

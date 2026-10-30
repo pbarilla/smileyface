@@ -117,7 +117,7 @@ static void scene_head(void)
     char s[8];
     uint32_t now = seq_run ? seq_step : cur, nt = PAT[now % STEPS].note, ac = nt && (PAT[now % STEPS].fl & F_ACC);
     cv_rect(0, 0, 240, (int32_t)Y_HDR, C_K);
-    smiley(23, 20, 16, seq_run ? 4 + env_view / 2200 : 0, anim_t / 2u, ac ? 5 : 0, seq_run ? (int32_t)sina(seq_step * 4u) / 40 : 0);
+    smiley(23, 20, 16, ac ? 5 : 0, seq_run ? (int32_t)sina(seq_step * 4u) / 40 : 0);
     utoa3(s, pat_idx + 1u);                                     /* the pattern, in a tag (the border pinks up when another is cued) */
     cv_rect(50, 9, 30, 24, cue_w != cue_r ? C_PINK : C_CY);
     cv_rect(52, 11, 26, 20, C_K);
@@ -292,7 +292,7 @@ static void scene_fly(void)
         int32_t dk = ((int32_t)fly_boom_step - pos + 32 + 8) % 16 - 8, x = SHIP_X + dk * COL_W - fr, y = deg_y((int32_t)fly_boom_deg), r = (int32_t)(fm1_ms - fly_boom_ms) / 12 + 4, j;
         for (j = 0; j < 16; j++) cv_rect(x + cosa((uint32_t)j * 4u) * r / 127 - 1, y + sina((uint32_t)j * 4u) * r / 127 - 1, 3, 3, j & 1 ? C_PINK : C_Y);
     }
-    smiley(SHIP_X, ship_y >> 4, 10, 0, 0, fm1_ms - fly_bolt_ms < 140u ? 4 : 0, 2);
+    smiley(SHIP_X, ship_y >> 4, 10, fm1_ms - fly_bolt_ms < 140u ? 4 : 0, 2);
 }
 
 
@@ -337,7 +337,7 @@ static void scene_walk(void)
             cv_rect(x0, y, x1 - x0 + 1, 1, c);
         }
     }
-    smiley(120, WHZ - 6, 12, 0, 0, 0, 0);                       /* the sun at the end of the corridor */
+    smiley(120, WHZ - 6, 12, 0, 0);                       /* the sun at the end of the corridor */
     for (k = 9; k >= 0; k--) {                                  /* the steps coming, far ones first */
         int32_t si = (pos + k) % len, dz = k * 40 + 40 - fr * 40 / 256 + 10, lane;
         const step_t s = PAT[si];
@@ -359,7 +359,7 @@ static void scene_walk(void)
         int32_t r = (int32_t)(fm1_ms - fly_boom_ms) / 14 + 6, j;
         for (j = 0; j < 12; j++) cv_rect(120 + cosa((uint32_t)j * 5u) * r / 127 - 1, 120 + sina((uint32_t)j * 5u) * r / 127 - 1, 3, 3, j & 1 ? C_PINK : C_Y);
     }
-    smiley(120, 160, 9, 0, 0, fm1_ms - fly_bolt_ms < 140u ? 4 : 0, 0);           /* you */
+    smiley(120, 160, 9, fm1_ms - fly_bolt_ms < 140u ? 4 : 0, 0);           /* you */
 }
 
 /* ---- PLAY: the 16 patterns as pads, two rows of eight like the keys under them. A key cues a pattern; the chain plays in the order you pressed. */

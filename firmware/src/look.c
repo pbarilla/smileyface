@@ -34,17 +34,11 @@ static void ellipse(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t c)
 static int32_t cosa(uint32_t a) { return SIN64[(a + 16u) & 63u]; }
 static int32_t sina(uint32_t a) { return SIN64[a & 63u]; }
 
-/* the smiley: eyes slide with the beat, the mouth grins wider on an accent, and it melts a little when the sound opens.
+/* the smiley: eyes slide with the beat and the mouth grins wider on an accent.
  * The mouth is a parabola drawn a column at a time, so it stays smooth at any size. */
-static void smiley(int32_t cx, int32_t cy, int32_t r, int32_t melt, uint32_t ph, int32_t grin, int32_t look)
+static void smiley(int32_t cx, int32_t cy, int32_t r, int32_t grin, int32_t look)
 {
-    int32_t j, x, w = r * 3 / 5, dep = r / 3 + 1 + grin / 2, y0 = cy + r / 5 - grin / 4, t = r / 10 + 2;
-    for (j = 0; j < 3; j++) {                                   /* drips */
-        int32_t len = (sina(ph + (uint32_t)j * 21u) + 128) * melt / 256;
-        int32_t dx = cx - r / 2 + j * (r / 2);
-        int32_t dw = r / 8 + 3;                                 /* the drip is thicker on a bigger face */
-        if (len > 1) { cv_rect(dx - dw / 2, cy + r - 3, dw, len + 3, C_Y); disc(dx, cy + r + len - 1, dw / 2 + 1, C_Y); }
-    }
+    int32_t x, w = r * 3 / 5, dep = r / 3 + 1 + grin / 2, y0 = cy + r / 5 - grin / 4, t = r / 10 + 2;
     disc(cx, cy, r + 2, C_K);
     disc(cx, cy, r, C_Y);
     ellipse(cx - r / 3 + look, cy - r / 4 - 1, r / 7 + 1, r / 3, C_K);

@@ -19,10 +19,6 @@ m._web_start();
 await sleep(600);
 ok(lit() > 3000, "the screen draws on boot");
 ok(peak() === 0, "silent before anything is pressed");
-const quick = Array.from(fb().slice(0, 240)).join();
-await press(BTN.HOME);                                            // the quick start is up on a new device: HOME leaves it
-await sleep(300);
-ok(Array.from(fb().slice(0, 240)).join() !== quick, "HOME leaves the quick start");
 await press(BTN.GLO); await sleep(300);
 const man = lit();
 await press(BTN.GLO); await sleep(200);                           // GLO again: the contents

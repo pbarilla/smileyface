@@ -161,6 +161,14 @@
    "FLY": "Octave",
    "PLAY": "Octave",
    "WALK": "Octave"
+  },
+  {
+   "id": "GLO+HOME",
+   "name": "GLO + HOME",
+   "STEPS": "Menu: Factory Reset, Roll The Dice",
+   "FLY": "Menu",
+   "WALK": "Menu",
+   "PLAY": "Menu"
   }
  ],
  "pages": [
@@ -270,6 +278,7 @@
   "WALK: a corridor of 8 lanes, low notes left. Shoot to write a note in your lane; hit a monster for an accent",
   "FLY: hit a foe for an accent. Shots on neighbouring steps at different heights slide",
   "Hold SEL on a project in the project list to copy it, hold EDIT to start it over",
-  "Send MIDI clock and the FM-1 follows it. The tempo turns blue"
+  "Send MIDI clock and the FM-1 follows it. The tempo turns blue",
+  "GLO + HOME is the menu. Roll The Dice fills every pattern of every project with random stuff: hold OCT+ to confirm"
  ]
 }
