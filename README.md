@@ -1,6 +1,6 @@
 # Smileyface
 
-Acid bass line thing for the FM-1. Think TD-3-MO, but in your FM-1! (Beta.)
+Make some Acid on your FM-1!
 
 <p>
 <img src="site/img/steps.png" width="32%"> <img src="site/img/fly.png" width="32%"> <img src="site/img/walk.png" width="32%">
@@ -9,10 +9,11 @@ Acid bass line thing for the FM-1. Think TD-3-MO, but in your FM-1! (Beta.)
 
 ## What is it
 
-A simple (to me) workflow for making acid. Write a pattern, then twist the knobs.
+A simpleworkflow for making acid. Write a pattern (or smash that LFO button to roll the dice), and then twist the knobs.
 
 ## Links
 
+- [Homepage] (https://ihavenocluewhatimdoing.com/smileyface/)
 - [Play online](https://ihavenocluewhatimdoing.com/smileyface/play/)
 - [Install](https://ihavenocluewhatimdoing.com/smileyface/install.html)
 - [Guide](https://ihavenocluewhatimdoing.com/smileyface/guide/)
@@ -20,7 +21,7 @@ A simple (to me) workflow for making acid. Write a pattern, then twist the knobs
 
 ## Tested?
 
-- On a real FM-1, yep!
+- Yep! Trust me, it's a lot of fun!
 
 ## Licence
 
