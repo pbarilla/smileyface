@@ -15,11 +15,14 @@
  *   PLAY             start / stop      SEQ   tap tempo      LFO   a random pattern      ARP   nudge a few steps      REC   undo (one level)
  *   OCT- OCT+        octave      SAVE   save (it also saves 2 s after an edit, when stopped)      MASTER   volume
  *   USB-MIDI         clock, start, stop and continue are followed (the tempo turns cyan); notes play the voice (velocity 100 and up = accent);
- *                    CC 102 play / stop, 103 tempo / 2, 104 save, 105 random pattern, 106 open project 0..11, 110 factory reset, 111 roll the dice, 112 a weird thing (test), 108 pattern 0..15 (cued while it plays),
+ *                    CC 102 play / stop, 103 tempo / 2, 104 save, 105 random pattern, 106 open project 0..11, 110 factory reset, 111 roll the dice, 112 a weird thing (test), 114 a button press (test), 108 pattern 0..15 (cued while it plays),
  *                    74 75 71 72 = CUT ENV RES DEC. The device sends CC 100 = CPU % (worst block since boot), CC 101 = view | 16 unsaved | 32 playing | 64 projects,
  *                    CC 107 = the open project, CC 109 = the pattern
  *
  * Integers only: no float, no 64-bit division. tests/host.c runs this file on a computer. */
+#ifndef SMILEY_HOST
+#define OTA_PROJ_IO
+#endif
 #include "platform.c"
 #ifdef SMILEY_HOST
 #define FM1_TICKS_PER_US 24u
@@ -95,10 +98,11 @@ static void pat_pick(uint32_t p)                                /* a pattern: no
     if (!seq_run) { pat_idx = p; cue_clear(); cur = 0; }
     else { cue_clear(); cue_push(p); }
 }
+#include "projio.c"
 
 static void app_main(void)
 {
-    uint32_t keys, prev = 0, btn_was = 0, hb_ms = 0, weird_next = 16000u, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
+    uint32_t fake_b = 0, keys, prev = 0, btn_was = 0, hb_ms = 0, weird_next = 16000u, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
     uint32_t ext_ms = 0, tap_last = 0, tap_n = 0, tap_k = 0, tap_iv[4] = {0}, sel_was = 0, sel_t0 = 0, sel_used = 0;
     uint32_t home_was = 0, home_t0 = 0, home_used = 0, edit_was = 0, edit_t0 = 0, edit_used = 0, sel_was2 = 0, sel_rot = 0, sel_keyed = 0;
     int32_t e;
@@ -116,6 +120,13 @@ static void app_main(void)
         uint32_t b, rel, down, up, home_now, edit_now, sel_now, env_now, glo_now;
         platform_poll();
         b = fm1_input_edges(&rel);
+        b |= fake_b; fake_b = 0;
+        g_dirty = dirty;
+        if (px_open_req) {                                              /* a project came in over USB: open it */
+            uint32_t sl = px_open_req - 1u;
+            px_open_req = 0;
+            slot_load(sl); cfg.slot = (uint8_t)sl; cfg_dirty = 1; t_change = fm1_ms; dirty = 0; pick_on = 0; redraw |= 7;
+        }
         {
             uint8_t st, d1, d2;
             while (midi_get(&st, &d1, &d2)) {
@@ -140,13 +151,16 @@ static void app_main(void)
                         else if (d2 == 30u) { crit_kind = 1u; crit_ms = fm1_ms; }
                         redraw |= 7;
                     }
+                    else if (d1 == 114u) fake_b |= 1u << (d2 & 15u);                                                           /* test: a button press */
                     else if (d1 == 110u) { factory_reset(); dirty = cfg_dirty = 0; redraw |= 7; }
                     else if (d1 == 111u) { roll_dice(); dirty = 0; redraw |= 7; }
                     else if (d1 == 108u && d2 < PATS) { pat_pick(d2); redraw |= 7; }
-                    else if (d1 == 74u) { kn.cut = (uint8_t)(d2 >> 2); redraw |= 6; }
-                    else if (d1 == 75u) { kn.env = (uint8_t)(d2 >> 2); redraw |= 6; }
-                    else if (d1 == 71u) { kn.res = (uint8_t)(d2 >> 2); redraw |= 6; }
-                    else if (d1 == 72u) { kn.dec = (uint8_t)(d2 >> 2); redraw |= 6; }
+                    else if (d1 == 74u || d1 == 75u || d1 == 71u || d1 == 72u) {                                              /* CUT ENV RES DEC from a controller (recorded as knob turns) */
+                        uint8_t *kp = d1 == 74u ? &kn.cut : d1 == 75u ? &kn.env : d1 == 71u ? &kn.res : &kn.dec;
+                        int32_t nv = d2 >> 2, dl = nv - (int32_t)*kp;
+                        if (dl) { *kp = (uint8_t)nv; }
+                        redraw |= 6;
+                    }
                 }
             }
             if (fm1_ms - hb_ms >= 1000u) {                  /* heartbeat for tests */
@@ -187,7 +201,7 @@ static void app_main(void)
         home_was = home_now;
         if (b & (1u << BTN_GLO) && home_now && !menu_on) { menu_on = 1; menu_sel = 0; man_on = 0; man_lock = 0; pick_on = 0; home_used = 1; redraw |= 7; b &= ~(1u << BTN_GLO); }       /* HOME first, then GLO: the menu */
         if (b & (1u << BTN_GLO) && !man_on && !menu_on) {                                                              /* the manual, at the chapter for where you are */
-            man_open(pick_on ? MC_PROJ : view_now == V_STEPS ? MC_STEPS : view_now == V_FLY ? MC_FLY : view_now == V_WALK ? MC_WALK : MC_PLAY, 0u);
+            man_open(pick_on ? MC_PROJ : view_now == V_STEPS ? MC_STEPS : view_now == V_PLAY ? MC_PLAY : MC_QUICK, 0u);          /* (the odd views are not explained: try it and find out) */
             redraw |= 7;
             b &= ~(1u << BTN_GLO);
         }
@@ -250,7 +264,9 @@ static void app_main(void)
             e = fm1_enc_take(ENC_ALGORITHM);
             if (e) { int32_t v = (int32_t)pick_sel + (e < 0 ? -3 : 3); pick_sel = (uint32_t)(v < 0 ? 0 : v >= (int32_t)SLOTS ? (int32_t)SLOTS - 1 : v); redraw |= 7; }
             for (k = 0; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
-            if (b & (1u << BTN_PLAY)) { if (seq_run) seq_stop(); else seq_play(); }
+            if (b & (1u << BTN_PLAY)) {
+                if (seq_run) seq_stop(); else seq_play();
+            }
             edit_was = edit_now; sel_was = sel_now;
             fm1_led_key(BTN_PLAY, seq_run);
             if (redraw && fm1_ms - last_draw >= 20u) { paint(0, 240); last_draw = fm1_ms; redraw = 0; }
@@ -268,6 +284,7 @@ static void app_main(void)
             else if (down >> k & 1u) {
                 PAT[cur].note = (uint8_t)nt;
                 PAT[cur].fl = (uint8_t)((env_now ? F_ACC : 0) | (sel_now ? F_SLD : 0));                    /* ENV or SEL held: an accent, a slide */
+               
                 voice_on(nt, PAT[cur].fl & F_ACC, 0);
                 held_note = nt;
                 if (sel_now) sel_keyed = 1;
@@ -299,10 +316,13 @@ static void app_main(void)
             }
             tap_last = fm1_ms;
         }
-        if (b & (1u << BTN_REC) && undo_has) { undo_swap(); dirty = 1; t_change = fm1_ms; redraw |= 7; }
+        if (b & (1u << BTN_FX) && undo_has) { undo_swap(); dirty = 1; t_change = fm1_ms; redraw |= 7; }                      /* FX: undo */
         if (b & (1u << BTN_ARP)) { undo_save(); mutate(); dirty = 1; t_change = fm1_ms; redraw |= 7; }
         if (b & (1u << BTN_LFO)) { undo_save(); random_pattern(); dirty = 1; t_change = fm1_ms; redraw |= 7; }
-        if (b & (1u << BTN_PLAY)) { if (seq_run) { seq_stop(); } else seq_play(); redraw |= 7; }
+        if (b & (1u << BTN_PLAY)) {
+            if (seq_run) seq_stop(); else seq_play();
+            redraw |= 7;
+        }
         if (b & (1u << BTN_OCT_DOWN) && cfg.oct > 0u) { cfg.oct--; cfg_dirty = 1; t_change = fm1_ms; }
         if (b & (1u << BTN_OCT_UP) && cfg.oct < 3u) { cfg.oct++; cfg_dirty = 1; t_change = fm1_ms; }
         if (b & (1u << BTN_SAVE)) { if (!seq_run) { slot_save(); if (cfg_dirty) settings_save(&cfg, sizeof cfg); dirty = cfg_dirty = 0; } }
@@ -348,7 +368,7 @@ static void app_main(void)
         fm1_led_key(BTN_ENV, view_now != V_PLAY && (PAT[cur].fl & F_ACC));
         fm1_led_key(BTN_SEL, view_now != V_PLAY && (PAT[cur].fl & F_SLD));
         fm1_led_glow(BTN_SAVE, dirty);
-        fm1_led_glow(BTN_REC, undo_has);
+        fm1_led_glow(BTN_FX, undo_has);
         fm1_led_key(BTN_OCT_DOWN, cfg.oct < 1u);
         fm1_led_key(BTN_OCT_UP, cfg.oct > 1u);
         {                                                       /* the keys: the cursor's note glows, the playing note is lit; in PLAY the patterns, in FX the switches */

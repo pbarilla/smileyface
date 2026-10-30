@@ -14,6 +14,7 @@ typedef struct { const char *name; uint16_t col; const mpage_t *page; uint8_t n;
 static const mpage_t MP_QUICK[] = {
     {"", M_LFO | M_SMALL, "Hit LFO until you find something you like."},
     {"", M_ALGO | M_KNOBS | M_SMALL, "Twist ALGORITHM to view all the knobs and switches."},
+    {"", M_HOME | M_SMALL, "Tap HOME. Try it and find out."},
 };
 static const mpage_t MP_STEPS[] = {
     {"Write", M_KEYS, "Press a key to write a note on the cursor's step. The cursor hops on to the next step."},
@@ -23,7 +24,7 @@ static const mpage_t MP_STEPS[] = {
     {"Rests", M_EDIT | M_SELECT, "Press EDIT to make a rest. Turn SELECT to move the cursor without writing."},
     {"Play", M_PLAY | M_PRESETS, "Press PLAY to start and stop. Turn PRESETS to pick another of your 16 patterns."},
     {"Octave", M_OCTD | M_OCTU, "Press OCT- or OCT+ to play lower or higher. The lights show how far you've gone."},
-    {"Lucky dip", M_LFO | M_ARP | M_REC, "Press LFO for a random pattern. Press ARP to nudge a few steps. Press REC to undo."},
+    {"Lucky dip", M_LFO | M_ARP | M_FX, "Press LFO for a random pattern. Press ARP to nudge a few steps. Press FX to undo."},
 };
 static const mpage_t MP_KNOBS[] = {
     {"Live", M_KNOBS | M_SMALL, "Turn KNOB 1 to 4 while it plays, in any view. The dials at the bottom show where they are."},
@@ -34,20 +35,6 @@ static const mpage_t MP_KNOBS[] = {
     {"Extras", M_KNOBS | M_SMALL, "FILT FM lets the oscillator shake the filter. SWING swings the odd steps late. LENGTH sets how many steps play. LEVEL sets how loud it is."},
     {"Switches", M_KNOBS | M_ALGO | M_SMALL, "Turn ALGORITHM on to pages 5 and 6 for the switches. Turn a knob right to flip a switch up, left to flip it down."},
     {"Tempo", M_SEQ | M_ALGO, "Tap SEQ in time to set the tempo, or use KNOB 4 (TEMPO) on page 2. Send MIDI clock and the FM-1 follows."},
-};
-static const mpage_t MP_FLY[] = {
-    {"Steer", M_SELECT, "Turn SELECT to fly the ship up and down the scale. Higher is a higher note."},
-    {"Shoot", M_KEYS, "Press any key to fire. A shot writes a note at the ship's height. No shot leaves a rest."},
-    {"Accents", M_ENV, "Hit a foe to make an accent. Or hold ENV while you shoot."},
-    {"Slides", M_SEL, "Shoot twice in a row at different heights and the notes slide. Hold SEL to stop that."},
-    {"Go", M_PLAY, "Press PLAY first. The steps fly past, and each shot lands on the nearest one."},
-};
-static const mpage_t MP_WALK[] = {
-    {"Steer", M_SELECT, "Turn SELECT to step left and right along the corridor. Each lane is a note, low on the left and high on the right."},
-    {"Shoot", M_KEYS, "Press any key to shoot. A shot writes a note in your lane, on the step that's passing. No shot leaves a rest."},
-    {"Accents", M_ENV, "Hit a monster to make an accent. Or hold ENV while you shoot."},
-    {"Slides", M_SEL, "Shoot twice in a row in different lanes and the notes slide. Hold SEL to stop that."},
-    {"Go", M_PLAY, "Press PLAY first. The steps come at you down the corridor."},
 };
 static const mpage_t MP_PLAY[] = {
     {"Patterns", M_PRESETS, "Every project holds 16 patterns. Turn PRESETS to pick the one you're writing."},
@@ -65,10 +52,10 @@ static const mpage_t MP_PROJ[] = {
 #define MC(n, c, p) {n, c, p, sizeof p / sizeof p[0]}
 static const mchap_t MCH[] = {
     MC("Quick Start", RGB(160, 255, 0), MP_QUICK), MC("Steps", RGB(255, 238, 0), MP_STEPS), MC("Knobs", RGB(255, 36, 170), MP_KNOBS),
-    MC("Fly", RGB(160, 255, 0), MP_FLY), MC("Walk", RGB(255, 120, 0), MP_WALK), MC("Play", RGB(0, 226, 255), MP_PLAY), MC("Projects", RGB(255, 238, 0), MP_PROJ),
+    MC("Play", RGB(0, 226, 255), MP_PLAY), MC("Projects", RGB(255, 238, 0), MP_PROJ),
 };
 #define MCHN (sizeof MCH / sizeof MCH[0])
-enum { MC_QUICK, MC_STEPS, MC_KNOBS, MC_FLY, MC_WALK, MC_PLAY, MC_PROJ };
+enum { MC_QUICK, MC_STEPS, MC_KNOBS, MC_PLAY, MC_PROJ };
 
 /* the FM-1 as the Play online page draws it (1040 x 664, cut off under the buttons): knob and button centres */
 static const int16_t MKN[8][2] = {{139, 187}, {253, 185}, {139, 295}, {253, 295}, {665, 185}, {772, 185}, {880, 185}, {988, 185}};

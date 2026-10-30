@@ -13,7 +13,7 @@ static uint32_t cur, page, view_now;
 static int32_t env_view;
 static uint32_t anim_t;                                         /* the floor and the smiley run on this */
 static uint32_t pick_on, pick_sel;
-static uint32_t shock_ms;                               /* the last touch; the last accent (the shockwave starts then) */
+static uint32_t shock_ms;
 static uint32_t rnd_s;
 static uint32_t rnd(void) { rnd_s = rnd_s * 1664525u + 1013904223u; return rnd_s >> 8; }
 
@@ -202,7 +202,7 @@ static void scene_head(void)
     note_name(s, nt);
     if (s[0]) cv_text(92, 6, &FONT_L, s, ac ? C_PINK : C_Y);
     utoa3(s, seq_bpm);
-    cv_text(236 - text_w(&FONT_L, s), 6, &FONT_L, s, ext_on ? C_CY : C_Y);
+    cv_text(236 - text_w(&FONT_L, s), 6, &FONT_L, s, ext_on ? C_CY : C_Y);       /* cyan: an outside clock */
     cv_rect(0, (int32_t)Y_HDR - 3, 240, 3, C_Y);
 }
 
@@ -322,11 +322,12 @@ static void fly_fire(uint32_t acc_held, uint32_t slide_held)
         }
     prev = (st + STEPS - 1u) % STEPS;
     if (!slide_held && fm1_ms - fired_ms[prev] < 2u * step_ms && PAT[prev].note && PAT[prev].note != nt && !(fired_ms[prev] == 0u))
-        PAT[prev].fl |= F_SLD;                                  /* neighbours that change pitch slide */
+        { PAT[prev].fl |= F_SLD; }           /* neighbours that change pitch slide */
     PAT[st].note = (uint8_t)nt;
     PAT[st].fl = (uint8_t)(acc ? F_ACC : 0);
     fired_ms[st] = fm1_ms ? fm1_ms : 1u;
     fly_bolt_ms = fm1_ms;
+   
     if (!seq_run || st == a) voice_on(nt, acc, 0);
     if (!seq_run) cur = (cur + 1u) % STEPS;
 }
@@ -453,6 +454,7 @@ static void tile_bars(int32_t x, int32_t y, int32_t w, int32_t h, const step_t *
         cv_rect(x + (int32_t)k * w / 16, y + h - bh, w / 16 > 1 ? w / 16 - 1 : 1, bh, p[k].fl & F_ACC ? ca : c);
     }
 }
+
 static void scene_play(void)
 {
     uint32_t i, q;
@@ -478,20 +480,27 @@ static void scene_play(void)
 }
 
 /* ---- the projects */
-static void slot_load(uint32_t i)
+static void slot_apply(const slot_t *sl)                        /* a project's pattern, sound and tempo become what plays */
 {
-    const slot_t *sl = slot_get(i);
     uint32_t a, b;
     for (a = 0; a < PATS; a++) { for (b = 0; b < STEPS; b++) pats[a][b] = sl->pats[a][b]; plen[a] = sl->plen[a] ? sl->plen[a] : STEPS; }
     kn = sl->kn; seq_bpm = sl->bpm < 60u || sl->bpm > 200u ? 126u : sl->bpm;
-    pat_idx = sl->pcur < PATS ? sl->pcur : 0u; cue_clear(); slot_cur = i; cur = 0;
+    pat_idx = sl->pcur < PATS ? sl->pcur : 0u; cue_clear(); cur = 0;
 }
-static void slot_save(void)
+static void slot_pack(slot_t *sl)                               /* what plays, as a project */
 {
-    slot_t *sl = &bank.s[slot_cur];
     uint32_t a, b;
     for (a = 0; a < PATS; a++) { for (b = 0; b < STEPS; b++) sl->pats[a][b] = pats[a][b]; sl->plen[a] = plen[a]; }
     sl->kn = kn; sl->bpm = (uint8_t)seq_bpm; sl->pcur = (uint8_t)pat_idx; sl->used = 1;
+}
+static void slot_load(uint32_t i)
+{
+    slot_apply(slot_get(i));
+    slot_cur = i;
+}
+static void slot_save(void)
+{
+    slot_pack(&bank.s[slot_cur]);
     bank_flush();
 }
 static void scene_pick(void)

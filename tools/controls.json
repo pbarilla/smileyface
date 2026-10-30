@@ -1,8 +1,6 @@
 {
  "views": [
   "STEPS",
-  "FLY",
-  "WALK",
   "PLAY"
  ],
  "short": {
@@ -26,95 +24,73 @@
   "ARP": "nudge",
   "SEQ": "tap",
   "PLAY": "play",
-  "REC": "undo",
-  "FX": ""
+  "REC": "record",
+  "FX": "undo"
  },
  "controls": [
   {
    "id": "keys",
    "name": "KEYS",
    "STEPS": "Write a note, move on",
-   "FLY": "Fire (a shot is a note)",
-   "PLAY": "White keys cue patterns",
-   "WALK": "Shoot (a shot is a note)"
+   "PLAY": "White keys cue patterns"
   },
   {
    "id": "SELECT",
    "name": "SELECT",
-   "STEPS": "Move the cursor. SEL held: wrap the pattern",
-   "FLY": "Steer the ship",
-   "WALK": "Step between lanes"
+   "STEPS": "Move the cursor. SEL held: wrap the pattern"
   },
   {
    "id": "PRESETS",
    "name": "PRESETS",
    "STEPS": "Pick a pattern (cued while it plays)",
-   "FLY": "Pick a pattern (cued while it plays)",
-   "PLAY": "Pick a pattern (cued while it plays)",
-   "WALK": "Pick a pattern (cued while it plays)"
+   "PLAY": "Pick a pattern (cued while it plays)"
   },
   {
    "id": "ALGORITHM",
    "name": "ALGORITHM",
    "STEPS": "Next page of knobs",
-   "FLY": "Next page of knobs",
-   "PLAY": "Next page of knobs",
-   "WALK": "Next page of knobs"
+   "PLAY": "Next page of knobs"
   },
   {
    "id": "KNOB 1-4",
    "name": "KNOB 1 to 4",
    "STEPS": "The sound (see the pages below)",
-   "FLY": "The sound (see the pages below)",
-   "PLAY": "The sound (see the pages below)",
-   "WALK": "The sound (see the pages below)"
+   "PLAY": "The sound (see the pages below)"
   },
   {
    "id": "HOME",
    "name": "HOME",
    "STEPS": "Next view. Hold: projects",
-   "FLY": "Next view. Hold: projects",
-   "PLAY": "Next view. Hold: projects",
-   "WALK": "Next view. Hold: projects"
+   "PLAY": "Next view. Hold: projects"
   },
   {
    "id": "GLO",
    "name": "GLO",
    "STEPS": "Manual",
-   "FLY": "Manual",
-   "PLAY": "Manual",
-   "WALK": "Manual"
+   "PLAY": "Manual"
   },
   {
    "id": "PLAY",
    "name": "PLAY",
    "STEPS": "Start, stop",
-   "FLY": "Start, stop",
-   "PLAY": "Start, stop",
-   "WALK": "Start, stop"
+   "PLAY": "Start, stop"
   },
   {
    "id": "SEQ",
    "name": "SEQ",
    "STEPS": "Tap tempo",
-   "FLY": "Tap tempo",
-   "PLAY": "Tap tempo",
-   "WALK": "Tap tempo"
+   "PLAY": "Tap tempo"
   },
   {
    "id": "ENV",
    "name": "ENV",
    "STEPS": "Accent on the step. Held: write with one",
-   "FLY": "Held: shots are accents",
-   "PLAY": "Held: accent everything",
-   "WALK": "Held: shots are accents"
+   "PLAY": "Held: accent everything"
   },
   {
    "id": "SEL",
    "name": "SEL",
-   "STEPS": "Tap: slide on the step. Held: write with a slide",
-   "FLY": "Held: no automatic slides",
-   "WALK": "Held: no automatic slides"
+   "STEPS": "Tap: slide on the step. Held: write with a slide"
   },
   {
    "id": "EDIT",
@@ -126,49 +102,37 @@
    "id": "LFO",
    "name": "LFO",
    "STEPS": "Random pattern",
-   "FLY": "Random pattern",
-   "PLAY": "Random pattern",
-   "WALK": "Random pattern"
+   "PLAY": "Random pattern"
   },
   {
    "id": "ARP",
    "name": "ARP",
    "STEPS": "Nudge a few steps",
-   "FLY": "Nudge a few steps",
-   "PLAY": "Nudge a few steps",
-   "WALK": "Nudge a few steps"
-  },
-  {
-   "id": "REC",
-   "name": "REC",
-   "STEPS": "Undo (again: flip back)",
-   "FLY": "Undo (again: flip back)",
-   "PLAY": "Undo (again: flip back)",
-   "WALK": "Undo (again: flip back)"
+   "PLAY": "Nudge a few steps"
   },
   {
    "id": "SAVE",
    "name": "SAVE",
    "STEPS": "Save",
-   "FLY": "Save",
-   "PLAY": "Save",
-   "WALK": "Save"
+   "PLAY": "Save"
   },
   {
    "id": "OCT-/OCT+",
    "name": "OCT-/OCT+",
    "STEPS": "Octave",
-   "FLY": "Octave",
-   "PLAY": "Octave",
-   "WALK": "Octave"
+   "PLAY": "Octave"
   },
   {
    "id": "GLO+HOME",
    "name": "GLO + HOME",
    "STEPS": "Menu: Factory Reset, Roll The Dice",
-   "FLY": "Menu",
-   "WALK": "Menu",
    "PLAY": "Menu"
+  },
+  {
+   "id": "FX",
+   "name": "FX",
+   "STEPS": "Undo (again: flip back)",
+   "PLAY": "Undo (again: flip back)"
   }
  ],
  "pages": [
@@ -275,8 +239,6 @@
   "Hold ENV or SEL while you press a key to write the note with an accent or a slide",
   "PLAY view: press white keys to cue patterns. They play in the order you pressed, each when the one before ends. Hold ENV to accent everything",
   "Pages 5 and 6 of the knobs are the switches, drawn as switches: turn a knob right to flip one up",
-  "WALK: a corridor of 8 lanes, low notes left. Shoot to write a note in your lane; hit a monster for an accent",
-  "FLY: hit a foe for an accent. Shots on neighbouring steps at different heights slide",
   "Hold SEL on a project in the project list to copy it, hold EDIT to start it over",
   "Send MIDI clock and the FM-1 follows it. The tempo turns blue",
   "GLO + HOME is the menu. Roll The Dice fills every pattern of every project with random stuff: hold OCT+ to confirm"

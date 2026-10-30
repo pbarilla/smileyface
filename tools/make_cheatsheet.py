@@ -117,7 +117,7 @@ def main():
   <header>
     <h1>Smileyface<span class="tag">CHEAT SHEET</span></h1>
     <span class="v">v@@VERSION@@</span>
-    <nav><a href="../">Home</a><a href="../guide/">Guide</a><a href="../play/">Play online</a></nav>
+    <nav><a href="../">Home</a><a href="../guide/">Guide</a><a href="../play/">Play online</a><a href="../share/">Share</a></nav>
   </header>
   @@PANEL@@
   <div class="tables"><table>

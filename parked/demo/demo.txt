@@ -1,0 +1,35 @@
+# a demo: record a performance, keep it, play it back from the project list; the two hashes (end of the take, end of the replay) must match
+100 btn 13
+150 shot
+500 shot
+2000 shot
+600 enc 2 3
+800 enc 3 -2
+1000 keys 1
+1060 keys 0
+1100 keys 4
+1160 keys 0
+1400 btn 5
+1700 enc 1 1
+1710 enc 5 4
+1900 enc 6 1
+2300 btn 5
+2500 btn 10
+2700 held 0x8
+2750 enc 0 1
+2800 held 0
+3000 enc 4 3
+3300 enc 6 -1
+3600 keys 0x10
+3660 keys 0
+4000 btn 13
+4100 btn 12
+7000 shot
+7100 held 0x100
+7800 shot
+7900 held 0
+8000 btn 12
+8500 shot
+12000 shot
+16000 shot
+30000 end

@@ -62,7 +62,7 @@ await press(BTN.PLAY);
 await sleep(200);
 for (let i = 0; i < 40; i++) { m._web_enc(2, 1); await sleep(20); m._web_enc(3, 1); await sleep(20); m._web_enc(4, -1); await sleep(20); }
 ok(lit() > 6000, "twisting the knobs keeps drawing");
-await press(BTN.LFO); await press(BTN.ARP); await press(BTN.REC); await press(BTN.REC);
+await press(BTN.LFO); await press(BTN.ARP);
 for (let i = 0; i < 16; i++) { await key(i % 27); await press(BTN.ENV, 30); await press(BTN.SEL, 30); }
 m._web_button(BTN.SEL, 1); for (let i = 0; i < 6; i++) { m._web_enc(0, i % 2 ? -1 : 1); await sleep(40); } m._web_button(BTN.SEL, 0); await sleep(100);   // wrap
 await press(BTN.SAVE);
