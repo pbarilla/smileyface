@@ -13,6 +13,7 @@ static uint32_t cur, page, view_now;
 static int32_t env_view;
 static uint32_t anim_t;                                         /* the floor and the smiley run on this */
 static uint32_t pick_on, pick_sel;
+static uint32_t shock_ms;                               /* the last touch; the last accent (the shockwave starts then) */
 static uint32_t rnd_s;
 static uint32_t rnd(void) { rnd_s = rnd_s * 1664525u + 1013904223u; return rnd_s >> 8; }
 
@@ -84,6 +85,81 @@ static void fx_apply(uint32_t env_held, uint32_t play_view)     /* ENV held in P
     fx_acc = play_view && env_held;
 }
 
+/* ---- the random weirdness: now and then (the main loop picks) the background changes, the header smiley pulls a face, the picture glitches or swaps
+ * its colours, something crosses the screen */
+static uint32_t gag_kind, gag_ms, glitch_ms, swap_ms, swap_kind, crit_kind, crit_ms;
+#define GAG_MS 1500u
+#define GLITCH_MS 240u
+#define CRIT_MS 4200u
+static uint32_t weird_active(void)
+{
+    return (gag_kind && fm1_ms - gag_ms < GAG_MS) || fm1_ms - glitch_ms < GLITCH_MS || fm1_ms - swap_ms < (swap_kind == 2u ? 260u : 2600u) || (crit_kind && fm1_ms - crit_ms < CRIT_MS);
+}
+static void weird_pick(void)                                    /* one random thing */
+{
+    uint32_t r = rnd() % 100u;
+    if (r < 46u) bg_style = bg_style ? 0u : 1u;                  /* the checkerboard, or the smiley wallpaper */
+    else if (r < 66u) { gag_kind = 1u + rnd() % 4u; gag_ms = fm1_ms; }
+    else if (r < 78u) glitch_ms = fm1_ms;
+    else if (r < 86u) { swap_kind = 1u + (rnd() % 4u == 0u); swap_ms = fm1_ms; }
+    else { crit_kind = 1u; crit_ms = fm1_ms; }
+}
+static void critter(void)                                       /* a saucer crossing the screen */
+{
+    uint32_t age = fm1_ms - crit_ms;
+    int32_t x = 250 - (int32_t)age * 300 / (int32_t)CRIT_MS, y = 70 + sina(age / 45u) * 6 / 127;
+    if (!crit_kind || age >= CRIT_MS) return;
+    ellipse(x, y, 22, 6, C_CY);
+    disc(x, y - 5, 8, C_LIME);
+    cv_rect(x - 14, y - 1, 3, 3, C_PINK); cv_rect(x - 2, y - 1, 3, 3, C_Y); cv_rect(x + 10, y - 1, 3, 3, C_PINK);
+    cv_rect(x - 4, y - 8, 2, 3, C_K); cv_rect(x + 2, y - 8, 2, 3, C_K);
+}
+static void fx_post(uint32_t y0, uint32_t h)                    /* what happens to the picture after it is drawn: a glitch, a colour swap */
+{
+    uint32_t i, y, n = 240u * h;
+    if (fm1_ms - glitch_ms < GLITCH_MS) {                       /* bands of rows slide sideways */
+        uint32_t seed = (fm1_ms / 50u) * 2654435761u;
+        uint16_t tmp[240];
+        for (y = 0; y + 4u <= h; y += 4u) {
+            uint32_t hh = (seed ^ ((y0 + y) * 40503u)) * 2246822519u, rr;
+            int32_t off;
+            if ((hh >> 8) % 4u) continue;
+            off = (int32_t)((hh >> 16) % 61u) - 30;
+            for (rr = 0; rr < 4u; rr++) {
+                uint16_t *row = cv_px + (y + rr) * 240u;
+                for (i = 0; i < 240u; i++) tmp[(i + 240u + (uint32_t)off) % 240u] = row[i];
+                for (i = 0; i < 240u; i++) row[i] = tmp[i];
+            }
+        }
+    }
+    if (swap_kind == 1u && fm1_ms - swap_ms < 2600u) {          /* red and blue trade places */
+        for (i = 0; i < n; i++) { uint32_t c = swap16(cv_px[i]); cv_px[i] = swap16(((c & 31u) << 11) | (c & 0x7E0u) | (c >> 11)); }
+    } else if (swap_kind == 2u && fm1_ms - swap_ms < 260u) {    /* a flash of the negative */
+        for (i = 0; i < n; i++) cv_px[i] = (uint16_t)~cv_px[i];
+    }
+}
+
+/* ---- the silly bits */
+static uint32_t idle_ms(void) { return seq_run ? 0u : fm1_ms - act_ms; }           /* how long nobody has touched it (while it plays it is not idle) */
+static uint32_t pat_target(void)                                /* the pattern PRESETS is heading for: the last one cued, else the one playing */
+{
+    return cue_w != cue_r ? cue_q[(cue_w - 1u) % CUEQ] : pat_idx;
+}
+static int32_t shock_bump(void) { uint32_t age = fm1_ms - shock_ms; return age < 500u ? (int32_t)(500u - age) / 25 : 0; }       /* an accent: the floor jolts */
+static int32_t idle_bump(void) { uint32_t i = idle_ms(); return i > 8000u ? (int32_t)((i - 8000u) / 400u > 30u ? 30u : (i - 8000u) / 400u) : 0; }     /* left alone: the floor goes wild */
+static void saucer(void)                                        /* left alone for a long time: a saucer goes by */
+{
+    uint32_t i = idle_ms();
+    int32_t x, y;
+    if (i < 25000u) return;
+    x = (int32_t)((i - 25000u) / 14u % 420u) - 90;
+    y = 70 + sina(i / 40u) * 10 / 127;
+    ellipse(x, y, 22, 6, C_CY);
+    disc(x, y - 5, 8, C_LIME);
+    cv_rect(x - 14, y - 1, 3, 3, C_PINK); cv_rect(x - 2, y - 1, 3, 3, C_Y); cv_rect(x + 10, y - 1, 3, 3, C_PINK);
+    cv_rect(x - 4, y - 8, 2, 3, C_K); cv_rect(x + 2, y - 8, 2, 3, C_K);
+}
+
 /* ---- the bars */
 static void scene_low(void)
 {
@@ -110,6 +186,7 @@ static void scene_low(void)
         cv_rect(x, 218, 60, 2, TC[y]);
         text_mid(x + 30, 221, NM[y], on ? C_K : TC[y]);
     }
+    if (seq_run) cv_rect((int32_t)(seq_step % 16u) * 15, 218, 30, 2, C_W);                       /* a light chases along the tabs with the steps */
 }
 
 static void scene_head(void)
@@ -117,8 +194,8 @@ static void scene_head(void)
     char s[8];
     uint32_t now = seq_run ? seq_step : cur, nt = PAT[now % STEPS].note, ac = nt && (PAT[now % STEPS].fl & F_ACC);
     cv_rect(0, 0, 240, (int32_t)Y_HDR, C_K);
-    smiley(23, 20, 16, ac ? 5 : 0, seq_run ? (int32_t)sina(seq_step * 4u) / 40 : 0);
-    utoa3(s, pat_idx + 1u);                                     /* the pattern, in a tag (the border pinks up when another is cued) */
+    smiley_g(23, 20, 16, ac ? 5 : 0, seq_run ? (int32_t)sina(seq_step * 4u) / 40 : 0, gag_kind && fm1_ms - gag_ms < GAG_MS ? gag_kind : 0u, (int32_t)sina((fm1_ms - gag_ms) * 32u / GAG_MS) * 100 / 127);
+    utoa3(s, pat_target() + 1u);                                /* the pattern, in a tag; pink and the number of the one you are heading for while another is cued */
     cv_rect(50, 9, 30, 24, cue_w != cue_r ? C_PINK : C_CY);
     cv_rect(52, 11, 26, 20, C_K);
     text_mid(65, 13, s, cue_w != cue_r ? C_PINK : C_CY);
@@ -132,9 +209,11 @@ static void scene_head(void)
 static void scene_steps(void)
 {
     uint32_t i, len = plen[pat_idx] ? plen[pat_idx] : STEPS;
-    floor_rows((int32_t)Y_HDR, (int32_t)Y_LOW - 4, 6 + env_view / 1800, anim_t);
+    floor_rows((int32_t)Y_HDR, (int32_t)Y_LOW - 4, 6 + env_view / 1800 + shock_bump() + idle_bump(), anim_t + (idle_ms() > 8000u ? anim_t * 2u : 0u));
+    saucer();
+    critter();
     for (i = 0; i < STEPS; i++) {
-        int32_t x = 4 + (int32_t)i * 29 / 2, base = 150, h;
+        int32_t x = 4 + (int32_t)i * 29 / 2, base = 150, h, hop = 0;
         const step_t s = PAT[i];
         uint32_t on = seq_run && seq_step == i, ac = s.fl & F_ACC;
         uint16_t c = on ? C_Y : ac ? C_PINK : C_LIME;
@@ -154,7 +233,9 @@ static void scene_steps(void)
                 }
             }
         } else cv_rect(x + 4, base - 3, 4, 3, C_RING);
-        mini(x + 6, 162, on ? 3u : !s.note ? 0u : ac ? 2u : 1u);
+        if (on) hop = sina((uint32_t)(sq_acc * 32u / 661500u)) * 6 / 127;                                    /* the playing step hops */
+        else if (idle_ms() > 10000u) hop = sina(anim_t * 2u + i * 4u) * 3 / 127;                              /* left alone: the smileys do a wave */
+        mini(x + 6, 162 - hop, on ? 3u : !s.note ? 0u : ac ? 2u : 1u);
     }
     {
         int32_t x = 4 + (int32_t)cur * 29 / 2;
@@ -376,7 +457,8 @@ static void scene_play(void)
 {
     uint32_t i, q;
     char nm[4];
-    floor_rows((int32_t)Y_HDR, (int32_t)Y_LOW - 4, 3 + env_view / 2500, anim_t);
+    floor_rows((int32_t)Y_HDR, (int32_t)Y_LOW - 4, 3 + env_view / 2500 + shock_bump() / 2 + idle_bump(), anim_t);
+    critter();
     for (i = 0; i < PATS; i++) {
         int32_t x = 4 + (int32_t)(i % 8u) * 29, y = 50 + (int32_t)(i / 8u) * 60;
         uint32_t queued = 0, pos = 0, len = plen[i] ? plen[i] : STEPS, any = 0, k;

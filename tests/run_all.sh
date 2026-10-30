@@ -10,7 +10,7 @@ build/voice_test > build/voice_test.log || { echo "FAIL voice_test"; fail=1; }
 tail -3 build/voice_test.log
 cc -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined -DSMILEY_HOST -DPOOL= '-D__attribute__(x)=' -DAPP_VER='"dev"' \
    -Ifirmware/src -Ifirmware/gen -o build/host/smileyface_san firmware/src/smileyface.c -lm 2>/dev/null || { echo "FAIL build"; exit 1; }
-for t in steps views switches wrap fly walk menu picker len clock tap manual monkey; do
+for t in steps views switches wrap fly walk menu silly weird picker len clock tap manual monkey; do
     rm -f build/host/t_$t.bin
     HOST_FLASH=build/host/t_$t.bin build/host/smileyface_san build/host/r_$t tests/$t.txt > build/host/r_$t.log 2>&1 || { echo "FAIL $t"; tail -3 build/host/r_$t.log; fail=1; continue; }
     grep -q "runtime error\|AddressSanitizer" build/host/r_$t.log && { echo "FAIL $t (sanitizer)"; fail=1; } || echo "ok   $t"

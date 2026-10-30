@@ -31,9 +31,8 @@ static volatile uint8_t cue_q[CUEQ];
 static volatile uint32_t cue_w, cue_r;
 static void cue_push(uint32_t p) { if (cue_w - cue_r < CUEQ) { cue_q[cue_w % CUEQ] = (uint8_t)p; cue_w++; } }
 static void cue_clear(void) { cue_r = cue_w; }
-/* switches held from the main loop (the FX layer, ENV in PLAY) */
-static volatile uint32_t fx_acc, fx_kill, fx_drv, fx_res, fx_sld;
-static volatile int32_t fx_oct;
+/* the accent button, held from the main loop (ENV in PLAY) */
+static volatile uint32_t fx_acc;
 static volatile uint32_t cpu_max;
 static volatile int32_t env_vis;                    /* the filter envelope as the screen sees it, Q15 */
 
@@ -92,7 +91,6 @@ static uint32_t sq_len, sq_age, sq_prev_sld;
 static void seq_fire(void)
 {
     step_t s = pats[pat_idx % PATS][seq_step % STEPS];
-    if (fx_sld && s.note) s.fl |= F_SLD;
     sq_age = 0;
     if (s.note) {
         gate_on(s.note, (s.fl & F_ACC) && !(kn.wave & 2u), sq_prev_sld);          /* (accents off: the switch) */
@@ -190,16 +188,15 @@ static void voice_render(int32_t *out, uint32_t n)
         }
         if ((vo.tick++ & 7u) == 0u) {                       /* control rate: 5.5 kHz */
             const uint32_t accx = vo.acc || fx_acc;
-            int32_t tg = vo.gate && !fx_kill ? (accx ? 32767 : 24000) : 0, e, idx, amt, pp = vo.p + fx_oct * 256;
+            int32_t tg = vo.gate ? (accx ? 32767 : 24000) : 0, e, idx, amt, pp;
             uint32_t ep;
             vo.p += mulq(vo.tp - vo.p, GLIDE_G[kn.sld]);
-            pp = vo.p + fx_oct * 256;
-            pp = pp < 0 ? 0 : pp > 126 * 256 ? 126 * 256 : pp;
+            pp = vo.p < 0 ? 0 : vo.p > 126 * 256 ? 126 * 256 : vo.p;
             {
                 uint32_t n = (uint32_t)pp >> 8, a = NOTE_INC[n], b = NOTE_INC[n + 1u];
                 vo.incT = (uint32_t)mulq((int32_t)(a + (((b - a) >> 8) * ((uint32_t)pp & 255u))), TUNE_R[kn.tun]);          /* TUN: a little either way */
             }
-            vo.vca += mulq(tg - vo.vca, fx_kill ? 20000 : vo.gate ? 12000 - (int32_t)kn.atk * 370 : 2500);        /* ATK: a soft attack */
+            vo.vca += mulq(tg - vo.vca, vo.gate ? 12000 - (int32_t)kn.atk * 370 : 2500);        /* ATK: a soft attack */
             ep = vo.env_pos >> 16;
             e = ENV_T[ep < 767u ? ep : 767u];
             env_vis = vo.gate ? e : env_vis - (env_vis >> 3);
@@ -210,9 +207,8 @@ static void voice_render(int32_t *out, uint32_t n)
             idx = (int32_t)kn.cut * 7 + mulq(e, amt) + ((int32_t)vo.note - 45) * (int32_t)kn.trk * 24 / 310;     /* TRK: the cutoff follows the note */
             if (idx > 255) idx = 255;
             if (idx < 0) idx = 0;
-            k = RES_K[fx_res ? KMAX : kn.res];
-            vo.drv = (int32_t)kn.drv + (fx_drv ? 12 : 0);
-            vo.drv = vo.drv > KMAX ? KMAX : vo.drv;
+            k = RES_K[kn.res];
+            vo.drv = kn.drv;
             k += (k * (int32_t)kn.hir) >> 9;                        /* HIR: past the edge of singing */
             vo.G = CUT_G[idx];
             vo.G2 = mulq(vo.G, vo.G); vo.G3 = mulq(vo.G2, vo.G); vo.G4 = mulq(vo.G3, vo.G);

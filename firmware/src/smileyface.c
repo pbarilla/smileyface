@@ -15,7 +15,7 @@
  *   PLAY             start / stop      SEQ   tap tempo      LFO   a random pattern      ARP   nudge a few steps      REC   undo (one level)
  *   OCT- OCT+        octave      SAVE   save (it also saves 2 s after an edit, when stopped)      MASTER   volume
  *   USB-MIDI         clock, start, stop and continue are followed (the tempo turns cyan); notes play the voice (velocity 100 and up = accent);
- *                    CC 102 play / stop, 103 tempo / 2, 104 save, 105 random pattern, 106 open project 0..11, 110 factory reset, 111 roll the dice, 108 pattern 0..15 (cued while it plays),
+ *                    CC 102 play / stop, 103 tempo / 2, 104 save, 105 random pattern, 106 open project 0..11, 110 factory reset, 111 roll the dice, 112 a weird thing (test), 108 pattern 0..15 (cued while it plays),
  *                    74 75 71 72 = CUT ENV RES DEC. The device sends CC 100 = CPU % (worst block since boot), CC 101 = view | 16 unsaved | 32 playing | 64 projects,
  *                    CC 107 = the open project, CC 109 = the pattern
  *
@@ -36,6 +36,10 @@ static void app_audio(int32_t *out, uint32_t n)
     if (dt > cpu_max) cpu_max = dt;
 }
 
+/* knobs count as being touched */
+static uint32_t act_ms;
+static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) act_ms = fm1_ms; return v; }
+#define fm1_enc_take enc_act
 #include "look.c"
 #include "views.c"
 #include "manual.c"
@@ -61,6 +65,7 @@ static void paint(uint32_t y0, uint32_t y1)                     /* rows y0 .. y1
             if (y0 + h > Y_LOW - 4u) scene_low();
         }
         cv_oy = 0;
+        if (!man_on && !menu_on) fx_post(y0, h);
         cv_blit(0, y0);
         y0 += h;
     }
@@ -93,7 +98,7 @@ static void pat_pick(uint32_t p)                                /* a pattern: no
 
 static void app_main(void)
 {
-    uint32_t keys, prev = 0, hb_ms = 0, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
+    uint32_t keys, prev = 0, btn_was = 0, hb_ms = 0, weird_next = 16000u, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
     uint32_t ext_ms = 0, tap_last = 0, tap_n = 0, tap_k = 0, tap_iv[4] = {0}, sel_was = 0, sel_t0 = 0, sel_used = 0;
     uint32_t home_was = 0, home_t0 = 0, home_used = 0, edit_was = 0, edit_t0 = 0, edit_used = 0, sel_was2 = 0, sel_rot = 0, sel_keyed = 0;
     int32_t e;
@@ -127,6 +132,14 @@ static void app_main(void)
                     else if (d1 == 104u) { slot_save(); dirty = 0; }
                     else if (d1 == 105u) { undo_save(); random_pattern(); dirty = 1; t_change = fm1_ms; redraw |= 7; }
                     else if (d1 == 106u && d2 < SLOTS) { if (dirty) slot_save(); dirty = 0; slot_load(d2); cfg.slot = (uint8_t)d2; cfg_dirty = 1; t_change = fm1_ms; redraw |= 7; }
+                    else if (d1 == 112u) {                                                                                     /* test: one weird thing on demand */
+                        if (d2 < 2u) bg_style = d2;
+                        else if (d2 >= 10u && d2 <= 13u) { gag_kind = d2 - 9u; gag_ms = fm1_ms; }
+                        else if (d2 == 20u) glitch_ms = fm1_ms;
+                        else if (d2 == 21u || d2 == 22u) { swap_kind = d2 - 20u; swap_ms = fm1_ms; }
+                        else if (d2 == 30u) { crit_kind = 1u; crit_ms = fm1_ms; }
+                        redraw |= 7;
+                    }
                     else if (d1 == 110u) { factory_reset(); dirty = cfg_dirty = 0; redraw |= 7; }
                     else if (d1 == 111u) { roll_dice(); dirty = 0; redraw |= 7; }
                     else if (d1 == 108u && d2 < PATS) { pat_pick(d2); redraw |= 7; }
@@ -146,6 +159,8 @@ static void app_main(void)
         }
         if (ext_on && fm1_ms - ext_ms > 400u) { ext_on = 0; redraw |= 1; }         /* the clock stopped: back to our own */
         keys = fm1_in.notes;
+        if (keys != prev || fm1_in.buttons != btn_was) act_ms = fm1_ms;
+        btn_was = fm1_in.buttons;
         down = keys & ~prev;
         up = prev & ~keys;
         prev = keys;
@@ -302,7 +317,7 @@ static void app_main(void)
         e = fm1_enc_take(ENC_ALGORITHM);
         if (e) { int32_t v = (int32_t)page + (e < 0 ? -1 : 1); page = (uint32_t)(v < 0 ? 0 : v >= (int32_t)PAGES ? (int32_t)PAGES - 1 : v); redraw |= 4; }
         e = fm1_enc_take(ENC_PRESETS);
-        if (e) { int32_t v = (int32_t)pat_idx + e; pat_pick((uint32_t)(v < 0 ? 0 : v >= (int32_t)PATS ? (int32_t)PATS - 1 : v)); redraw |= 7; }
+        if (e) { int32_t v = (int32_t)pat_target() + e; pat_pick((uint32_t)(v < 0 ? 0 : v >= (int32_t)PATS ? (int32_t)PATS - 1 : v)); redraw |= 7; }
         for (k = 0; k < 4u; k++) {
             e = fm1_enc_take(ENC_KNOB1 + k);
             if (e) { knob_turn(page, k, e); dirty = 1; t_change = fm1_ms; redraw |= 6; }
@@ -321,7 +336,14 @@ static void app_main(void)
             if (cfg_dirty) settings_save(&cfg, sizeof cfg);
             dirty = cfg_dirty = 0;
         }
-        if (seq_run) { static uint32_t sd, sp; if (sd != seq_step || sp != pat_idx) { sd = seq_step; sp = pat_idx; redraw |= 7; } if (fm1_ms - last_draw > 45u) redraw |= 3; }
+        if (seq_run) {
+            static uint32_t sd, sp;
+            if (sd != seq_step || sp != pat_idx) {
+                sd = seq_step; sp = pat_idx; redraw |= 7;
+                if (PAT[seq_step % STEPS].note && (PAT[seq_step % STEPS].fl & F_ACC)) shock_ms = fm1_ms ? fm1_ms : 1u;       /* an accent: a shockwave */
+            }
+            if (fm1_ms - last_draw > 45u) redraw |= 3;
+        } else if (fm1_ms - act_ms > 8000u && fm1_ms - last_draw > 80u && !menu_on) redraw |= 3;                            /* left alone: it keeps moving */
         fm1_led_key(BTN_PLAY, seq_run);
         fm1_led_key(BTN_ENV, view_now != V_PLAY && (PAT[cur].fl & F_ACC));
         fm1_led_key(BTN_SEL, view_now != V_PLAY && (PAT[cur].fl & F_SLD));
@@ -339,6 +361,8 @@ static void app_main(void)
                 fm1_led_glow(KEY_LED(k), glow); fm1_led_key(KEY_LED(k), lit);
             }
         }
+        if (fm1_ms >= weird_next) { weird_pick(); weird_next = fm1_ms + 10000u + rnd() % 18000u; }      /* something random every 10 to 28 s: little treats */
+        if (weird_active() && fm1_ms - last_draw > 45u) redraw |= 3;
         if (redraw && fm1_ms - last_draw >= 20u) {
             uint32_t ms = fm1_ms;
             anim_t = ms / 24u;

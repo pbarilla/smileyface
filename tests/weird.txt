@@ -1,0 +1,22 @@
+# the random weirdness, one at a time (MIDI CC 112): the five backgrounds, the faces, a glitch, the colour swap, the critters
+300 midi 0xB0 112 1
+500 shot
+2300 midi 0xB0 112 0
+2400 shot
+2700 midi 0xB0 112 10
+3400 shot
+3700 midi 0xB0 112 11
+4400 shot
+4700 midi 0xB0 112 12
+5400 shot
+5700 midi 0xB0 112 13
+6400 shot
+6700 midi 0xB0 112 20
+6790 shot
+7090 midi 0xB0 112 21
+7690 shot
+7990 midi 0xB0 112 22
+8090 shot
+12190 midi 0xB0 112 30
+13690 shot
+14190 end

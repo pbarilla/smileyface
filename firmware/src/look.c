@@ -35,17 +35,22 @@ static int32_t cosa(uint32_t a) { return SIN64[(a + 16u) & 63u]; }
 static int32_t sina(uint32_t a) { return SIN64[a & 63u]; }
 
 /* the smiley: eyes slide with the beat and the mouth grins wider on an accent. The mouth is a parabola drawn a column at a time, so it stays smooth at any size. */
-static void smiley(int32_t cx, int32_t cy, int32_t r, int32_t grin, int32_t look)
+/* gag: 0 none, 1 tongue out, 2 big eyes, 3 crossed eyes, 4 looking about; gp 0..100 how far into it */
+static void smiley_g(int32_t cx, int32_t cy, int32_t r, int32_t grin, int32_t look, uint32_t gag, int32_t gp)
 {
     int32_t x, rx = (r * 140 + 500) / 1000, ry = (r * 270 + 500) / 1000, ex = r * 370 / 1000, ey = r * 380 / 1000;
     int32_t w = r * 680 / 1000, t = (r * 12 + 50) / 100, dep = r * 360 / 1000 + grin / 2, y0 = cy + r * 300 / 1000 - grin / 4 - t / 2;
     if (rx < 1) rx = 1;
     if (ry < 2) ry = 2;
     if (t < 2) t = 2;
+    int32_t lx = look, rxx = look, rr = rx, rv = ry;
+    if (gag == 2u) { rr = rx + rx * gp / 150 + 1; rv = ry + ry * gp / 100; }                    /* big eyes */
+    else if (gag == 3u) { lx = ex * gp / 220; rxx = -lx; }                                      /* crossed */
+    else if (gag == 4u) { lx = rxx = sina((uint32_t)gp * 3u) * ex / 200; }                    /* looking about */
     disc(cx, cy, r + 2, C_K);
     disc(cx, cy, r, C_Y);
-    ellipse(cx - ex + look, cy - ey, rx, ry, C_K);
-    ellipse(cx + ex + look, cy - ey, rx, ry, C_K);
+    ellipse(cx - ex + lx, cy - ey, rr, rv, C_K);
+    ellipse(cx + ex + rxx, cy - ey, rr, rv, C_K);
     if (t >= 4) {                                               /* a big one: a disc stamped along the curve, so the line is even and the ends are round */
         for (x = -w; x <= w; x++) disc(cx + x, (y0 * 16 + (dep * 16 * (w * w - x * x) + w * w / 2) / (w * w) + 8 * t) / 16, t / 2, C_K);
         return;
@@ -56,7 +61,14 @@ static void smiley(int32_t cx, int32_t cy, int32_t r, int32_t grin, int32_t look
         int32_t th = (t * isqrt(10000 + sl * sl) + 50) / 100, top = (fc + 8 * t - th * 8 + 8) / 16;               /* (rounded all through, so no one pixel nubs) */
         cv_rect(cx + x, top, 1, th < 1 ? 1 : th, C_K);
     }
+    if (gag == 1u && gp > 10) {                                 /* tongue out, below the middle of the smile */
+        int32_t bot = y0 + dep + t, tw = r * 22 / 100 + 1, th = r * 32 / 100 * gp / 100 + 1;
+        ellipse(cx, bot + th / 2 - 1, tw, th, C_PINK);
+        cv_rect(cx, bot - 1, 1, th, C_K);
+    }
 }
+
+static void smiley(int32_t cx, int32_t cy, int32_t r, int32_t grin, int32_t look) { smiley_g(cx, cy, r, grin, look, 0, 0); }
 
 static void utoa3(char *s, uint32_t v)
 {
@@ -78,8 +90,9 @@ static void note_name(char *s, uint32_t note)
     s[i] = 0;
 }
 
-/* the floor: a checkerboard that waves, more when the filter is open, and slowly changes colour */
+/* the floor: a checkerboard that waves, more when the filter is open, and slowly changes colour. Now and then the smiley wallpaper (bg_style) */
 static const uint16_t FLOOR[3] = {RGB(44, 50, 0), RGB(58, 0, 46), RGB(0, 44, 58)};
+static uint32_t bg_style;                                       /* 0 checkerboard, 1 smiley wallpaper */
 static void floor_rows(int32_t y0, int32_t y1, int32_t amp, uint32_t t)
 {
     int32_t y;
@@ -87,11 +100,25 @@ static void floor_rows(int32_t y0, int32_t y1, int32_t amp, uint32_t t)
     uint16_t c = (uint16_t)((((FLOOR[fi] >> 11) * (300u - mix) + (FLOOR[fj] >> 11) * mix) / 300u) << 11 |
                             ((((FLOOR[fi] >> 5) & 63u) * (300u - mix) + ((FLOOR[fj] >> 5) & 63u) * mix) / 300u) << 5 |
                             ((FLOOR[fi] & 31u) * (300u - mix) + (FLOOR[fj] & 31u) * mix) / 300u);
-    for (y = y0; y < y1; y++) {
-        int32_t ox = sina((uint32_t)y * 3u / 2u + t) * amp / 127 + (int32_t)(t / 3u % 44u), cy = (y + sina(t / 2u + (uint32_t)(y >> 4)) * amp / 254 + 400) / 22, x;
-        for (x = -ox - 44; x < 240; x += 22) {
-            int32_t cxi = (x + ox + 440) / 22;
-            if ((cxi + cy) & 1) cv_rect(x + ox, y, 22, 1, c);
+    if (bg_style == 1u) {                                       /* smiley wallpaper, rows sliding the other way */
+        int32_t row, col;
+        for (row = 0; row < 4; row++) {
+            int32_t cyr = y0 + 16 + row * 36, sh = (int32_t)(t / 2u % 40u) * (row & 1 ? 1 : -1);
+            if (cyr + 14 > y1) break;
+            for (col = -1; col < 7; col++) {
+                int32_t cxr = col * 40 + 20 + sh + (row & 1 ? 20 : 0);
+                disc(cxr, cyr, 13, c);
+                cv_rect(cxr - 6, cyr - 6, 3, 6, C_K); cv_rect(cxr + 4, cyr - 6, 3, 6, C_K);
+                cv_rect(cxr - 6, cyr + 4, 13, 2, C_K); cv_rect(cxr - 7, cyr + 3, 2, 2, C_K); cv_rect(cxr + 6, cyr + 3, 2, 2, C_K);
+            }
+        }
+    } else {
+        for (y = y0; y < y1; y++) {
+            int32_t ox = sina((uint32_t)y * 3u / 2u + t) * amp / 127 + (int32_t)(t / 3u % 44u), cy = (y + sina(t / 2u + (uint32_t)(y >> 4)) * amp / 254 + 400) / 22, x;
+            for (x = -ox - 44; x < 240; x += 22) {
+                int32_t cxi = (x + ox + 440) / 22;
+                if ((cxi + cy) & 1) cv_rect(x + ox, y, 22, 1, c);
+            }
         }
     }
 }

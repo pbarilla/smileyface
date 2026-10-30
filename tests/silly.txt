@@ -1,0 +1,13 @@
+# the silly bits: accent shockwave, the tag showing where PRESETS is heading, then left alone (wild floor, the wave, the saucer)
+100 btn 12
+180 shot
+330 shot
+600 enc 6 1
+800 enc 6 1
+1000 enc 6 1
+1200 shot
+1500 btn 12
+12000 shot
+15000 shot
+28000 shot
+29000 end
