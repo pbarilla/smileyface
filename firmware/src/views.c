@@ -95,13 +95,17 @@ static uint32_t weird_active(void)
 {
     return (gag_kind && fm1_ms - gag_ms < GAG_MS) || fm1_ms - glitch_ms < GLITCH_MS || fm1_ms - swap_ms < (swap_kind == 2u ? 260u : 2600u) || (crit_kind && fm1_ms - crit_ms < CRIT_MS);
 }
+#define SWAP_BLUE 0
 static void weird_pick(void)                                    /* one random thing */
 {
     uint32_t r = rnd() % 100u;
     if (r < 46u) bg_style = bg_style ? 0u : 1u;                  /* the checkerboard, or the smiley wallpaper */
     else if (r < 66u) { gag_kind = 1u + rnd() % 4u; gag_ms = fm1_ms; }
     else if (r < 78u) glitch_ms = fm1_ms;
-    else if (r < 86u) { swap_kind = 1u + (rnd() % 4u == 0u); swap_ms = fm1_ms; }
+    else if (r < 86u) {                                          /* the red / blue swap is off (SWAP_BLUE): it looked like a fault; the negative flash stays */
+        uint32_t flash = rnd() % 4u == 0u;
+        if (SWAP_BLUE || flash) { swap_kind = 1u + flash; swap_ms = fm1_ms; }
+    }
     else { crit_kind = 1u; crit_ms = fm1_ms; }
 }
 static void critter(void)                                       /* a saucer crossing the screen */

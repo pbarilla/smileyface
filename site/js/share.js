@@ -4,19 +4,27 @@ import { Device, toFile, fromFile } from "./fm1share.js";
 
 const $ = (id) => document.getElementById(id);
 const TEXT = {
-  nomidi: "This browser can't talk to the FM-1. Try Chrome or Edge.",
-  denied: "MIDI was blocked. Allow it for this site and try again.",
-  notfound: "No FM-1 found. Check the USB cable and close other MIDI apps. It needs the beta that can share.",
-  lost: "Lost the FM-1. Replug it and connect again.",
-  read: "Couldn't read it.",
-  w2: "That isn't something this firmware can read.",
-  w4: "Couldn't write it. Try again.",
+  nomidi:
+    "Whoopsiedaisy! This browser ain't able to connect to your FM-1! Try Chrome or Edge.",
+  denied:
+    "MIDI was blocked. Spoiler warning: We kind of need it! Allow it for this site and try again.",
+  notfound: "Hey... did you actually plug the FM-1 in?",
+  lost: "waitasecond, where'd it go?? Replug your FM-1 and connect again.",
+  read: "Couldn't read it. Which is weird cause that's ALL i do!",
+  w2: "What is this, some weird unknown thing? I cant read this!",
+  w4: "Huh!? I cant write... whattheheck",
   w5: "Something went out of order. Try again.",
-  w6: "No such slot.",
-  badfile: "That file isn't a Smileyface file.",
+  w6: "No such slot. That's a silly warning, huh? What does that even mean? No such slot. yeah good luck lmao",
+  badfile: "lmao that isn't a Smileyface file... what are you playing at here!",
 };
-const say = (t) => { $("status").textContent = t; };
-const prog = (f) => { const b = $("bar"); b.style.display = f == null ? "none" : "block"; if (f != null) b.value = Math.round(f * 100); };
+const say = (t) => {
+  $("status").textContent = t;
+};
+const prog = (f) => {
+  const b = $("bar");
+  b.style.display = f == null ? "none" : "block";
+  if (f != null) b.value = Math.round(f * 100);
+};
 const fail = (e) => {
   prog(null);
   if (e && e.code === "write") say(TEXT["w" + e.status] || TEXT.w4);
@@ -26,12 +34,23 @@ const fail = (e) => {
 };
 
 let busy = false;
-const op = async (fn) => {                      // one thing at a time: the FM-1 takes one transfer at once
+const op = async (fn) => {
+  // one thing at a time: the FM-1 takes one transfer at once
   if (busy) return;
-  busy = true; document.body.classList.add("busy");
-  try { await fn(); } catch (e) { fail(e); } finally { busy = false; document.body.classList.remove("busy"); }
+  busy = true;
+  document.body.classList.add("busy");
+  try {
+    await fn();
+  } catch (e) {
+    fail(e);
+  } finally {
+    busy = false;
+    document.body.classList.remove("busy");
+  }
 };
-let dev = null, info = null, pending = null;     // pending: { slot, restore } for the file chooser
+let dev = null,
+  info = null,
+  pending = null; // pending: { slot, restore } for the file chooser
 
 const save = (name, text) => {
   const a = document.createElement("a");
@@ -40,8 +59,17 @@ const save = (name, text) => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 };
-const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
-const btn = (text, cls, fn) => { const b = mk("button", cls, text); b.addEventListener("click", fn); return b; };
+const mk = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const btn = (text, cls, fn) => {
+  const b = mk("button", cls, text);
+  b.addEventListener("click", fn);
+  return b;
+};
 
 async function refresh() {
   info = await dev.info();
@@ -51,29 +79,56 @@ async function refresh() {
   info.slots.forEach((s, i) => {
     const row = mk("div", "row" + (i === info.open ? " open" : ""));
     const what = mk("div", "what", "Project " + (i + 1));
-    what.append(mk("small", "", (s.used ? "has something" : "empty") + (i === info.open ? (info.dirty ? ", open, unsaved" : ", open") : "")));
+    what.append(
+      mk(
+        "small",
+        "",
+        (s.used ? "has something" : "empty") +
+          (i === info.open ? (info.dirty ? ", open, unsaved" : ", open") : "")
+      )
+    );
     row.append(mk("span", "n", String(i + 1)), what);
     const b = mk("div", "btns");
     if (s.used) b.append(btn("Download", "alt", () => download(i)));
-    b.append(btn(s.used ? "Replace…" : "Upload…", "alt", () => chooseFor(i, b)));
+    b.append(
+      btn(s.used ? "Replace…" : "Upload…", "alt", () => chooseFor(i, b))
+    );
     row.append(b);
     box.append(row);
   });
 }
 
-const download = (i) => op(async () => {
-  say("");
-  const project = await dev.read(i, prog);
-  prog(null);
-  save(`smileyface-project-${i + 1}.smileyface`, toFile([{ name: "Project " + (i + 1), project }]));
-});
+const download = (i) =>
+  op(async () => {
+    say("");
+    const project = await dev.read(i, prog);
+    prog(null);
+    save(
+      `smileyface-project-${i + 1}.smileyface`,
+      toFile([{ name: "Project " + (i + 1), project }])
+    );
+  });
 
 function chooseFor(slot, b) {
-  const open = () => { pending = { slot }; $("pick").value = ""; $("pick").click(); };
-  if (!info.slots[slot].used) { open(); return; }
+  const open = () => {
+    pending = { slot };
+    $("pick").value = "";
+    $("pick").click();
+  };
+  if (!info.slots[slot].used) {
+    open();
+    return;
+  }
   const was = [...b.childNodes];
   b.textContent = "";
-  b.append(mk("span", "small", `Replaces project ${slot + 1}.`), btn("Pick a file", "warn", open), btn("Cancel", "alt", () => { b.textContent = ""; b.append(...was); }));
+  b.append(
+    mk("span", "small", `Replaces project ${slot + 1}.`),
+    btn("Pick a file", "warn", open),
+    btn("Cancel", "alt", () => {
+      b.textContent = "";
+      b.append(...was);
+    })
+  );
 }
 
 $("pick").addEventListener("change", async (ev) => {
@@ -82,9 +137,20 @@ $("pick").addEventListener("change", async (ev) => {
   const { slot, restore } = pending;
   pending = null;
   let list;
-  try { list = fromFile(await f.text()); } catch (_) { fail({ code: "badfile" }); return; }
-  if (restore) { askRestore(list); return; }
-  op(async () => { await put(slot, list[0]); await refresh(); });
+  try {
+    list = fromFile(await f.text());
+  } catch (_) {
+    fail({ code: "badfile" });
+    return;
+  }
+  if (restore) {
+    askRestore(list);
+    return;
+  }
+  op(async () => {
+    await put(slot, list[0]);
+    await refresh();
+  });
 });
 
 async function put(slot, item) {
@@ -96,28 +162,54 @@ async function putAll(list) {
   for (let i = 0; i < n; i++) await put(i, list[i]);
   await refresh();
 }
-function askRestore(list) {                     // the warning only when something would really be replaced
+function askRestore(list) {
+  // the warning only when something would really be replaced
   const n = Math.min(list.length, info.slots.length);
   let used = 0;
   for (let i = 0; i < n; i++) if (info.slots[i].used) used++;
-  const go = () => { $("confirm").hidden = true; op(() => putAll(list)); };
-  if (!used) { go(); return; }
+  const go = () => {
+    $("confirm").hidden = true;
+    op(() => putAll(list));
+  };
+  if (!used) {
+    go();
+    return;
+  }
   const c = $("confirm");
-  c.textContent = `This replaces ${n === 1 ? "project 1" : `projects 1 to ${n}`}. `;
-  c.append(btn("Replace", "warn", go), " ", btn("Cancel", "alt", () => { c.hidden = true; }));
+  c.textContent = `This replaces ${
+    n === 1 ? "project 1" : `projects 1 to ${n}`
+  }. `;
+  c.append(
+    btn("Replace", "warn", go),
+    " ",
+    btn("Cancel", "alt", () => {
+      c.hidden = true;
+    })
+  );
   c.hidden = false;
 }
 
-$("backup").addEventListener("click", () => op(async () => {
-  const out = [];
-  for (let i = 0; i < info.slots.length; i++) {
-    if (!info.slots[i].used) continue;
-    out.push({ name: "Project " + (i + 1), project: await dev.read(i, prog) });
-  }
-  prog(null);
-  if (!out.length) { say("Nothing to back up."); return; }
-  save(`smileyface-backup-${new Date().toISOString().slice(0, 10)}.smileyface`, toFile(out));
-}));
+$("backup").addEventListener("click", () =>
+  op(async () => {
+    const out = [];
+    for (let i = 0; i < info.slots.length; i++) {
+      if (!info.slots[i].used) continue;
+      out.push({
+        name: "Project " + (i + 1),
+        project: await dev.read(i, prog),
+      });
+    }
+    prog(null);
+    if (!out.length) {
+      say("Nothing to back up.");
+      return;
+    }
+    save(
+      `smileyface-backup-${new Date().toISOString().slice(0, 10)}.smileyface`,
+      toFile(out)
+    );
+  })
+);
 
 $("restore").addEventListener("click", () => {
   $("confirm").hidden = true;
@@ -127,13 +219,19 @@ $("restore").addEventListener("click", () => {
 });
 
 $("connect").addEventListener("click", () => {
-  if (!navigator.requestMIDIAccess) { say(TEXT.nomidi); return; }
+  if (!navigator.requestMIDIAccess) {
+    say(TEXT.nomidi);
+    return;
+  }
   op(async () => {
     say("");
     try {
       dev = await Device.connect();
       await refresh();
       $("connect").textContent = "Refresh";
-    } catch (e) { dev = null; throw e; }
+    } catch (e) {
+      dev = null;
+      throw e;
+    }
   });
 });

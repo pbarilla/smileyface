@@ -98,6 +98,11 @@ static void pat_pick(uint32_t p)                                /* a pattern: no
     if (!seq_run) { pat_idx = p; cue_clear(); cur = 0; }
     else { cue_clear(); cue_push(p); }
 }
+static void pat_chain(uint32_t p)                               /* a key in PLAY: it joins the chain after the ones already cued */
+{
+    if (p >= PATS) return;
+    if (!seq_run) pat_pick(p); else cue_push(p);
+}
 #include "projio.c"
 
 static void app_main(void)
@@ -154,7 +159,7 @@ static void app_main(void)
                     else if (d1 == 114u) fake_b |= 1u << (d2 & 15u);                                                           /* test: a button press */
                     else if (d1 == 110u) { factory_reset(); dirty = cfg_dirty = 0; redraw |= 7; }
                     else if (d1 == 111u) { roll_dice(); dirty = 0; redraw |= 7; }
-                    else if (d1 == 108u && d2 < PATS) { pat_pick(d2); redraw |= 7; }
+                    else if (d1 == 108u && d2 < PATS) { pat_chain(d2); redraw |= 7; }
                     else if (d1 == 74u || d1 == 75u || d1 == 71u || d1 == 72u) {                                              /* CUT ENV RES DEC from a controller (recorded as knob turns) */
                         uint8_t *kp = d1 == 74u ? &kn.cut : d1 == 75u ? &kn.env : d1 == 71u ? &kn.res : &kn.dec;
                         int32_t nv = d2 >> 2, dl = nv - (int32_t)*kp;
@@ -277,7 +282,7 @@ static void app_main(void)
             uint32_t nt = 41u + 12u * cfg.oct + k - 12u, wi = 99u, w;
             for (w = 0; w < 16u; w++) if (WHITE_KEY[w] == k) wi = w;
             if ((down >> k & 1u) && view_now == V_PLAY) {
-                if (wi < PATS) { pat_pick(wi); redraw |= 7; }
+                if (wi < PATS) { pat_chain(wi); redraw |= 7; }
             }
             else if ((down >> k & 1u) && view_now == V_FLY) { fly_fire(env_now, sel_now); dirty = 1; t_change = fm1_ms; redraw |= 7; }
             else if ((down >> k & 1u) && view_now == V_WALK) { fly_deg = walk_lane * 2; fly_fire(env_now, sel_now); dirty = 1; t_change = fm1_ms; redraw |= 7; }
