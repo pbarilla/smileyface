@@ -29,6 +29,7 @@ static void clean_slot(slot_t *s)                               /* whatever came
     if (s->kn.lvl < -24 || s->kn.lvl > 7) s->kn.lvl = 0;
     if (s->bpm < 60u || s->bpm > 200u) s->bpm = 126;
     if (s->pcur >= PATS) s->pcur = 0;
+    fx_sanitize(&s->fx);
     s->used = 1; s->pad = 0;
 }
 static uint32_t px_snapshot(uint32_t slot)       /* into px: the length, 0 when empty */
@@ -40,9 +41,10 @@ static uint32_t px_snapshot(uint32_t slot)       /* into px: the length, 0 when 
 }
 static uint32_t px_store(uint32_t slot, uint32_t len)           /* the whole thing is in px: a status */
 {
-    if (len != (uint32_t)sizeof(slot_t)) return 2u;
+    if (len != (uint32_t)sizeof(slot_t) && len != SLOT_V1) return 2u;
     seq_stop();
-    memcpy(&bank.s[slot], px, sizeof(slot_t));
+    if (len == SLOT_V1) { memcpy(&bank.s[slot], px, SLOT_V1); bank.s[slot].fx = BLANK.fx; }        /* a project from before the rack */
+    else memcpy(&bank.s[slot], px, sizeof(slot_t));
     clean_slot(&bank.s[slot]);
     if (bank_flush() != 0) return 4u;
     px_open_req = slot + 1u;

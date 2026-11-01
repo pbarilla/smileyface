@@ -95,17 +95,12 @@ static uint32_t weird_active(void)
 {
     return (gag_kind && fm1_ms - gag_ms < GAG_MS) || fm1_ms - glitch_ms < GLITCH_MS || fm1_ms - swap_ms < (swap_kind == 2u ? 260u : 2600u) || (crit_kind && fm1_ms - crit_ms < CRIT_MS);
 }
-#define SWAP_BLUE 0
 static void weird_pick(void)                                    /* one random thing */
 {
-    uint32_t r = rnd() % 100u;
+    uint32_t r = rnd() % 92u;                                    /* (the colour swap and the negative flash are not picked: 92 = 100 less their 8; fx_post still has them) */
     if (r < 46u) bg_style = bg_style ? 0u : 1u;                  /* the checkerboard, or the smiley wallpaper */
     else if (r < 66u) { gag_kind = 1u + rnd() % 4u; gag_ms = fm1_ms; }
     else if (r < 78u) glitch_ms = fm1_ms;
-    else if (r < 86u) {                                          /* the red / blue swap is off (SWAP_BLUE): it looked like a fault; the negative flash stays */
-        uint32_t flash = rnd() % 4u == 0u;
-        if (SWAP_BLUE || flash) { swap_kind = 1u + flash; swap_ms = fm1_ms; }
-    }
     else { crit_kind = 1u; crit_ms = fm1_ms; }
 }
 static void critter(void)                                       /* a saucer crossing the screen */
@@ -197,7 +192,6 @@ static void scene_head(void)
 {
     char s[8];
     uint32_t now = seq_run ? seq_step : cur, nt = PAT[now % STEPS].note, ac = nt && (PAT[now % STEPS].fl & F_ACC);
-    cv_rect(0, 0, 240, (int32_t)Y_HDR, C_K);
     smiley_g(23, 20, 16, ac ? 5 : 0, seq_run ? (int32_t)sina(seq_step * 4u) / 40 : 0, gag_kind && fm1_ms - gag_ms < GAG_MS ? gag_kind : 0u, (int32_t)sina((fm1_ms - gag_ms) * 32u / GAG_MS) * 100 / 127);
     utoa3(s, pat_target() + 1u);                                /* the pattern, in a tag; pink and the number of the one you are heading for while another is cued */
     cv_rect(50, 9, 30, 24, cue_w != cue_r ? C_PINK : C_CY);
@@ -490,12 +484,13 @@ static void slot_apply(const slot_t *sl)                        /* a project's p
     for (a = 0; a < PATS; a++) { for (b = 0; b < STEPS; b++) pats[a][b] = sl->pats[a][b]; plen[a] = sl->plen[a] ? sl->plen[a] : STEPS; }
     kn = sl->kn; seq_bpm = sl->bpm < 60u || sl->bpm > 200u ? 126u : sl->bpm;
     pat_idx = sl->pcur < PATS ? sl->pcur : 0u; cue_clear(); cur = 0;
+    fx_load(&sl->fx);
 }
 static void slot_pack(slot_t *sl)                               /* what plays, as a project */
 {
     uint32_t a, b;
     for (a = 0; a < PATS; a++) { for (b = 0; b < STEPS; b++) sl->pats[a][b] = pats[a][b]; sl->plen[a] = plen[a]; }
-    sl->kn = kn; sl->bpm = (uint8_t)seq_bpm; sl->pcur = (uint8_t)pat_idx; sl->used = 1;
+    sl->kn = kn; sl->bpm = (uint8_t)seq_bpm; sl->pcur = (uint8_t)pat_idx; sl->used = 1; sl->fx = rack;
 }
 static void slot_load(uint32_t i)
 {

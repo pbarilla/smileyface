@@ -1,0 +1,35 @@
+# the effect: open FX; ALGORITHM walks the row, none first; knobs; and back to none
+100 btn 2
+300 shot
+400 enc 1 1
+500 shot
+600 enc 1 1
+700 shot
+800 enc 1 1
+900 shot
+1000 enc 1 1
+1100 shot
+1200 enc 1 1
+1300 shot
+1400 enc 1 1
+1500 shot
+1600 enc 1 1
+1700 shot
+1800 enc 2 4
+1850 enc 3 -3
+1900 enc 4 5
+1950 enc 5 2
+2050 shot
+2200 enc 1 -1
+2260 enc 1 -1
+2320 enc 1 -1
+2380 enc 1 -1
+2440 enc 1 -1
+2500 enc 1 -1
+2560 enc 1 -1
+2620 enc 1 -1
+2800 shot
+2900 held 0x100
+2950 held 0
+3050 shot
+3150 end

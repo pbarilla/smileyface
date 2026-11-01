@@ -7,6 +7,9 @@
 #include <string.h>
 #include <math.h>
 #include "../firmware/src/voice.c"
+#define __attribute__(x)                                /* (the pool is the device's) */
+#include "../firmware/src/fx.c"
+#undef __attribute__
 
 static int32_t buf[2 * 256];
 static void reset(void) { memset(&vo, 0, sizeof vo); ev_r = ev_w = 0; seq_run = 0; }
@@ -104,6 +107,71 @@ int main(void)
         seq_stop();
         if (cue_w != cue_r) { printf("FAIL: stop kept the chain\n"); return 1; }
         printf("cue ok\n");
+    }
+    /* 6: the FX rack: a delay's echo comes when TIME says, and no mix of units, knobs and notes rails or sticks */
+    {
+        uint32_t bl, k, i, t, runs, rails = 0, stuck = 0, dcbad = 0;
+        static int32_t y[256 * 400];
+        memset(&rack, 0, sizeof rack);
+        rack.on = 1;
+        for (t = 0; t < 32u; t += 15u) {                        /* TIME 0, 15, 30 */
+            int32_t pk1 = 0, at = 0;
+            uint32_t want, ms = 30u + t * t * 970u / 961u;
+            memset(fxs, 0, sizeof fxs); fx_clear_line(0);
+            fx_set(0, FX_DELAY, DL_DUB); fx_rst = 0;
+            rack.u[0].p[0] = (uint8_t)t; rack.u[0].p[1] = 16; rack.u[0].p[2] = 31; rack.u[0].p[3] = 24;
+            for (bl = 0; bl < 200u; bl++) {
+                memset(buf, 0, sizeof buf);
+                if (bl == 0) buf[0] = buf[1] = 20000;
+                fx_process(buf, 256);
+                for (i = 0; i < 256u; i++) y[bl * 256u + i] = buf[2u * i];
+            }
+            for (i = 100; i < 200u * 256u; i++) if (abs(y[i]) > pk1 && (i > ms * 441u / 10u / 2u)) { pk1 = abs(y[i]); at = (int32_t)i; if (i > ms * 441u / 10u * 3u / 2u) break; }
+            want = ms * 441u / 10u;
+            printf("delay TIME %u: %u ms, first echo at sample %d, wanted %u (peak %d)\n", t, ms, at, want, pk1);
+            if (at < (int32_t)want * 9 / 10 || at > (int32_t)want * 11 / 10 + 80) { printf("FAIL: the echo is not where TIME says\n"); return 1; }
+        }
+        {                                                       /* the digital delay lands on the beat: 1/8 at 120 bpm is 250 ms */
+            int32_t pk = 0, at = 0;
+            seq_bpm = 120;
+            memset(fxs, 0, sizeof fxs); fx_clear_line(0);
+            fx_set(0, FX_DELAY, DL_DIGITAL); fx_rst = 0;
+            rack.u[0].p[0] = 12; rack.u[0].p[1] = 8; rack.u[0].p[2] = 31; rack.u[0].p[3] = 31;
+            for (bl = 0; bl < 100u; bl++) {
+                memset(buf, 0, sizeof buf);
+                if (bl == 0) buf[0] = buf[1] = 20000;
+                fx_process(buf, 256);
+                for (i = 0; i < 256u; i++) { int32_t v = abs(buf[2u * i]), at0 = (int32_t)(bl * 256u + i); if (at0 > 2000 && v > pk) { pk = v; at = at0; } }
+            }
+            printf("digital 1/8 at 120 bpm: echo at sample %d, wanted 11025 (peak %d)\n", at, pk);
+            if (at < 10900 || at > 11200 || pk < 5000) { printf("FAIL: the digital delay is off the beat\n"); return 1; }
+        }
+        for (runs = 0; runs < 120u; runs++) {                   /* random racks over a playing bass */
+            uint32_t sat = 0, tot = 0;
+            double mean = 0;
+            reset(); memset(&kn, 0, sizeof kn); kn.cut = 14; kn.res = 18; kn.env = 18; kn.dec = 12; kn.tun = 16; kn.pol = 31; kn.dec = 8;
+            memset(fxs, 0, sizeof fxs); fx_rst = 0;
+            rack.on = 1;
+            for (k = 0; k < FXN; k++) {
+                fx_set(k, rand() % FX_KINDS, rand() % 3u);
+                if (rack.u[k].type) { for (i = 0; i < 8u; i++) rack.u[k].p[i] = (uint8_t)(rand() % 32u); if (rack.u[k].type != FX_DELAY && rack.u[k].p[3] > 24u) rack.u[k].p[3] = 24; if (rand() % 3u == 0u) rack.u[k].bus = 1; if (k && rand() % 2u) rack.u[k].in = (uint8_t)(rand() % (k + 1u)); }
+            }
+            fx_sanitize(&rack);
+            for (i = 0; i < STEPS; i++) { pats[0][i].note = (uint8_t)(rand() % 4u ? 36 + rand() % 24 : 0); pats[0][i].fl = (uint8_t)(rand() % 4); plen[0] = 16; }
+            pat_idx = 0; seq_bpm = 90 + rand() % 90; seq_play();
+            for (bl = 0; bl < 400u; bl++) {
+                memset(buf, 0, sizeof buf);
+                voice_render(buf, 256);
+                fx_process(buf, 256);
+                for (i = 0; i < 256u; i++) { int32_t v = buf[2u * i]; if (bl >= 100u) { if (abs(v) >= 32000) sat++; mean += v; tot++; } }
+            }
+            if (sat > tot / 3u) { stuck++; printf("rails:"); for (k = 0; k < FXN; k++) { printf(" [%u/%u in%u bus%u", rack.u[k].type, rack.u[k].sub, rack.u[k].in, rack.u[k].bus); for (i = 0; i < 4u; i++) printf(" %u", rack.u[k].p[i]); printf("]"); } printf("\n"); }
+            if (fabs(mean / tot) > 4000.0) { dcbad++; printf("dc %.0f:", mean / tot); for (k = 0; k < FXN; k++) { printf(" [%u/%u in%u bus%u", rack.u[k].type, rack.u[k].sub, rack.u[k].in, rack.u[k].bus); for (i = 0; i < 8u; i++) printf(" %u", rack.u[k].p[i]); printf("]"); } printf("\n"); }
+            for (i = 0; i < 256u; i++) if (abs(buf[2u * i]) > 32000) rails++;
+        }
+        printf("fx fuzz: %u runs mostly on the rails, %u dc offsets, %u samples past 32000\n", stuck, dcbad, rails);
+        if (stuck || dcbad || rails) { printf("FAIL: the rack\n"); return 1; }
+        printf("fx ok\n");
     }
     return 0;
 }

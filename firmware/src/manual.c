@@ -24,7 +24,7 @@ static const mpage_t MP_STEPS[] = {
     {"Rests", M_EDIT | M_SELECT, "Press EDIT to make a rest. Turn SELECT to move the cursor without writing."},
     {"Play", M_PLAY | M_PRESETS, "Press PLAY to start and stop. Turn PRESETS to pick another of your 16 patterns."},
     {"Octave", M_OCTD | M_OCTU, "Press OCT- or OCT+ to play lower or higher. The lights show how far you've gone."},
-    {"Lucky dip", M_LFO | M_ARP | M_FX, "Press LFO for a random pattern. Press ARP to nudge a few steps. Press FX to undo."},
+    {"Lucky dip", M_LFO | M_ARP | M_REC, "Press LFO for a random pattern. Press ARP to nudge a few steps. Press REC to undo."},
 };
 static const mpage_t MP_KNOBS[] = {
     {"Live", M_KNOBS | M_SMALL, "Turn KNOB 1 to 4 while it plays, in any view. The dials at the bottom show where they are."},
@@ -49,13 +49,23 @@ static const mpage_t MP_PROJ[] = {
     {"Menu", M_GLO | M_HOME, "Press GLO and HOME together for the menu. Factory Reset starts over. Roll The Dice fills every pattern with random notes."},
     {"Save", M_SAVE, "Press SAVE to save. Stop touching it for two seconds and it saves by itself."},
 };
+static const mpage_t MP_FX[] = {                        /* the first page is for no effect, then one for each in the order ALGORITHM walks them: GLO shows the one that is on */
+    {"Effect", M_FX | M_ALGO | M_SMALL, "Press FX to open the effect and again to leave it. Turn ALGORITHM to put one on. Press HOME to go back."},
+    {"Robot on pills", M_KNOBS | M_SMALL, "TIME sets the gap between echoes. FEEDBK sets how many echoes follow. MIX sets how loud they are. TONE sets how dull they get."},
+    {"Tapes of wrath", M_KNOBS | M_SMALL, "TIME sets the gap between echoes. FEEDBK sets how many echoes follow. MIX sets how loud they are. WOW sets how loose the tape runs."},
+    {"Take the dub", M_KNOBS | M_SMALL, "TIME sets the gap, and bends the echoes as you turn it. FEEDBK sets how much comes back: past half it howls. CUTOFF filters every echo. LEVEL sets the volume. Inspired by Korg's monotron Delay."},
+    {"Bitcrush", M_KNOBS | M_SMALL, "BITS sets how few bits are left. RATE sets how slowly the sound is sampled. MIX blends it with the clean bass. LEVEL sets the volume."},
+    {"Dead Radio", M_KNOBS | M_SMALL, "BAND squeezes the sound into a narrow band. BITS sets how few bits are left. MIX blends it with the clean bass. LEVEL sets the volume."},
+    {"thats why i love...", M_KNOBS | M_SMALL, "DRIVE sets how hard the bass is pushed. TONE sets how dull it gets. MIX blends it with the clean bass. LEVEL sets the volume."},
+    {"Laundry Day", M_KNOBS | M_SMALL, "DRIVE sets how often the wave folds over itself. TONE sets how dull it gets. MIX blends it with the clean bass. LEVEL sets the volume."},
+};
 #define MC(n, c, p) {n, c, p, sizeof p / sizeof p[0]}
 static const mchap_t MCH[] = {
     MC("Quick Start", RGB(160, 255, 0), MP_QUICK), MC("Steps", RGB(255, 238, 0), MP_STEPS), MC("Knobs", RGB(255, 36, 170), MP_KNOBS),
-    MC("Play", RGB(0, 226, 255), MP_PLAY), MC("Projects", RGB(255, 238, 0), MP_PROJ),
+    MC("Play", RGB(0, 226, 255), MP_PLAY), MC("Projects", RGB(255, 238, 0), MP_PROJ), MC("FX", RGB(255, 36, 170), MP_FX),
 };
 #define MCHN (sizeof MCH / sizeof MCH[0])
-enum { MC_QUICK, MC_STEPS, MC_KNOBS, MC_PLAY, MC_PROJ };
+enum { MC_QUICK, MC_STEPS, MC_KNOBS, MC_PLAY, MC_PROJ, MC_FX };
 
 /* the FM-1 as the Play online page draws it (1040 x 664, cut off under the buttons): knob and button centres */
 static const int16_t MKN[8][2] = {{139, 187}, {253, 185}, {139, 295}, {253, 295}, {665, 185}, {772, 185}, {880, 185}, {988, 185}};

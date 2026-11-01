@@ -24,8 +24,8 @@
   "ARP": "nudge",
   "SEQ": "tap",
   "PLAY": "play",
-  "REC": "record",
-  "FX": "undo"
+  "REC": "undo",
+  "FX": "effect"
  },
  "controls": [
   {
@@ -131,6 +131,12 @@
   {
    "id": "FX",
    "name": "FX",
+   "STEPS": "FX: one effect",
+   "PLAY": "FX: one effect"
+  },
+  {
+   "id": "REC",
+   "name": "REC",
    "STEPS": "Undo (again: flip back)",
    "PLAY": "Undo (again: flip back)"
   }

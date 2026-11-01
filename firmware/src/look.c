@@ -15,18 +15,23 @@ static int32_t isqrt(int32_t n)
     while ((r + 1) * (r + 1) <= n) r++;
     return r;
 }
+static int cv_vis(int32_t y0, int32_t y1) { return y1 > -cv_oy && y0 < -cv_oy + (int32_t)cv_h; }       /* does any of rows y0 .. y1 fall in the strip being drawn */
 static void disc(int32_t cx, int32_t cy, int32_t r, uint16_t c)
 {
-    int32_t dy;
-    for (dy = -r; dy <= r; dy++) {
+    int32_t dy, d0 = -r, d1 = r;                                /* (the screen is drawn in strips: only the rows in this one) */
+    if (cy + d0 < -cv_oy) d0 = -cv_oy - cy;
+    if (cy + d1 >= -cv_oy + (int32_t)cv_h) d1 = -cv_oy + (int32_t)cv_h - 1 - cy;
+    for (dy = d0; dy <= d1; dy++) {
         int32_t w = isqrt(r * r + r - dy * dy);                 /* (r * r + r: no one pixel nubs at the poles) */
         cv_rect(cx - w, cy + dy, 2 * w + 1, 1, c);
     }
 }
 static void ellipse(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t c)
 {
-    int32_t dy;
-    for (dy = -ry; dy <= ry; dy++) {
+    int32_t dy, d0 = -ry, d1 = ry;
+    if (cy + d0 < -cv_oy) d0 = -cv_oy - cy;
+    if (cy + d1 >= -cv_oy + (int32_t)cv_h) d1 = -cv_oy + (int32_t)cv_h - 1 - cy;
+    for (dy = d0; dy <= d1; dy++) {
         int32_t w = isqrt(rx * rx * (ry * ry + ry - dy * dy) / (ry * ry));
         cv_rect(cx - w, cy + dy, 2 * w + 1, 1, c);
     }
@@ -113,11 +118,13 @@ static void floor_rows(int32_t y0, int32_t y1, int32_t amp, uint32_t t)
             }
         }
     } else {
-        for (y = y0; y < y1; y++) {
+        if (y0 < -cv_oy) y0 = -cv_oy;
+        if (y1 > -cv_oy + (int32_t)cv_h) y1 = -cv_oy + (int32_t)cv_h;
+        for (y = y0 & ~1; y < y1; y += 2) {                         /* two rows at a time: the drawing is the slow part */
             int32_t ox = sina((uint32_t)y * 3u / 2u + t) * amp / 127 + (int32_t)(t / 3u % 44u), cy = (y + sina(t / 2u + (uint32_t)(y >> 4)) * amp / 254 + 400) / 22, x;
             for (x = -ox - 44; x < 240; x += 22) {
                 int32_t cxi = (x + ox + 440) / 22;
-                if ((cxi + cy) & 1) cv_rect(x + ox, y, 22, 1, c);
+                if ((cxi + cy) & 1) cv_rect(x + ox, y, 22, 2, c);
             }
         }
     }

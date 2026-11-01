@@ -1,11 +1,13 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* Twelve projects in flash: each has 16 patterns (and each pattern its length), the sound (the knobs) and the tempo. Two copies of the bank
+/* Twelve projects in flash: each has 16 patterns (and each pattern its length), the sound (the knobs), the tempo and the FX rack. Two copies of the bank
  * take turns (a save writes the other one, the header last, so a cut leaves the old bank standing); a copy is two 4 KB sectors.
  * An empty project shows the factory one (the first) or a blank. */
 #define SLOTS 12u
-typedef struct { step_t pats[PATS][STEPS]; uint8_t plen[PATS]; knobs_t kn; uint8_t bpm, used, pcur, pad; } slot_t;      /* 552 bytes */
+typedef struct { step_t pats[PATS][STEPS]; uint8_t plen[PATS]; knobs_t kn; uint8_t bpm, used, pcur, pad; fxr_t fx; } slot_t;      /* 604 bytes (the first 552 were a whole project before the rack) */
+#define SLOT_V1 552u
 typedef struct { uint32_t magic, seq, crc, n; slot_t s[SLOTS]; } bank_t;
-#define BANK_MAGIC 0x53464B32u
+#define BANK_MAGIC 0x53464B33u
+#define BANK_MAGIC_V1 0x53464B32u
 #define BANK_AT PROJ_AT
 #define BANK_SPAN 0x2000u                                       /* one copy: two sectors */
 static bank_t bank;
@@ -27,11 +29,13 @@ static const slot_t FACTORY = {
     },
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
     {14, 20, 18, 12, 16, 14, 4, 0, 4, 12, 2, 0, 16, 0, 12, 31, 0, 0, 0, 0}, 126, 1, 0, 0,
+    {0, FX_VER, {0, 0}, {{0}}},
 };
 static const slot_t BLANK = {
     {R0, R0, R0, R0, R0, R0, R0, R0, R0, R0, R0, R0, R0, R0, R0, R0},
     {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16},
     {14, 20, 18, 12, 16, 14, 4, 0, 4, 12, 2, 0, 16, 0, 12, 31, 0, 0, 0, 0}, 126, 1, 0, 0,
+    {0, FX_VER, {0, 0}, {{0}}},
 };
 #undef R0
 #undef N
@@ -53,6 +57,18 @@ static int bank_try(uint32_t at, bank_t *b)
     if (b->magic != BANK_MAGIC || b->n != SLOTS) return 0;
     return crc32((const uint8_t *)b->s, sizeof b->s) == b->crc;
 }
+static int bank_try_v1(uint32_t at, bank_t *b)                  /* a bank saved before the rack: 552 byte projects, they get an empty rack. It stays in flash until the first save. */
+{
+    static uint8_t raw[16u + SLOTS * SLOT_V1] __attribute__((section(".pool")));
+    uint32_t i, magic, sq, crc, n;
+    if (pf_read(at, raw, sizeof raw) != 0) return 0;
+    memcpy(&magic, raw, 4); memcpy(&sq, raw + 4, 4); memcpy(&crc, raw + 8, 4); memcpy(&n, raw + 12, 4);
+    if (magic != BANK_MAGIC_V1 || n != SLOTS || crc32(raw + 16, SLOTS * SLOT_V1) != crc) return 0;
+    memset(b, 0, sizeof *b);
+    b->magic = BANK_MAGIC; b->n = SLOTS; b->seq = sq;
+    for (i = 0; i < SLOTS; i++) { memcpy(&b->s[i], raw + 16u + i * SLOT_V1, SLOT_V1); b->s[i].fx = BLANK.fx; }
+    return 1;
+}
 static void bank_load(void)                                     /* the newer of the two copies, or an empty bank */
 {
     static bank_t other;
@@ -60,7 +76,12 @@ static void bank_load(void)                                     /* the newer of 
     if (a && b) { if (other.seq > bank.seq) { bank = other; bank_on = 1; } else bank_on = 0; }
     else if (b) { bank = other; bank_on = 1; }
     else if (a) bank_on = 0;
-    else { memset(&bank, 0, sizeof bank); bank.magic = BANK_MAGIC; bank.n = SLOTS; bank_on = 1; }
+    else {
+        uint32_t v0 = (uint32_t)bank_try_v1(BANK_AT, &bank), v1 = (uint32_t)bank_try_v1(BANK_AT + BANK_SPAN, &other);
+        if (v1 && (!v0 || other.seq > bank.seq)) bank = other;
+        else if (!v0) { memset(&bank, 0, sizeof bank); bank.magic = BANK_MAGIC; bank.n = SLOTS; }
+        bank_on = 1;
+    }
 }
 static int bank_flush(void)                                     /* the other copy, header last */
 {
