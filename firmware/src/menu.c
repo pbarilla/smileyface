@@ -53,10 +53,10 @@ static void scene_menu(void)
     const int32_t x = 6, y = 36, w = 228;
     uint32_t i;
     if (menu_on == 1u) {
-        static const char *const IT[2] = {"Factory Reset", "Roll The Dice"};
-        const int32_t h = 128;
+        static const char *const IT[3] = {"Factory Reset", "Roll The Dice", "Pierre, 1985"};
+        const int32_t h = 158;
         menu_win("Menu", C_Y, h);
-        for (i = 0; i < 2u; i++) {
+        for (i = 0; i < 3u; i++) {
             int32_t ly = y + 32 + (int32_t)i * 30;
             if (i == menu_sel) { cv_rect(x + 8, ly - 4, w - 16, 26, RGB(60, 0, 40)); cv_rect(x + 8, ly - 4, 4, 26, C_PINK); }
             text_at(x + 22, ly, IT[i], i == menu_sel ? C_W : C_RING);

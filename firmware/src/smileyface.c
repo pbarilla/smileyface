@@ -18,7 +18,7 @@
  *   USB-MIDI         clock, start, stop and continue are followed (the tempo turns cyan); notes play the voice (velocity 100 and up = accent);
  *                    CC 102 play / stop, 103 tempo / 2, 104 save, 105 random pattern, 106 open project 0..11, 110 factory reset, 111 roll the dice, 112 a weird thing (test), 114 a button press (test), 117 rack on / off (test), 118 a unit in a slot (test), 108 pattern 0..15 (cued while it plays),
  *                    74 75 71 72 = CUT ENV RES DEC. The device sends CC 100 = CPU % (worst block since boot), CC 119 / 120 / 121 = slowest screen / drawing / main loop turn in ms, CC 101 = view | 16 unsaved | 32 playing | 64 projects,
- *                    CC 107 = the open project, CC 109 = the pattern
+ *                    CC 107 = the open project, CC 109 = the pattern, CC 116 = the switch bits (1 square, 2 accents off, 4 and 8 BASS, 16 and 32 DRIFT, 64 DIODE). CC 127 sets those bits (test)
  *
  * Integers only: no float, no 64-bit division. tests/host.c runs this file on a computer. */
 #ifndef SMILEY_HOST
@@ -48,6 +48,7 @@ static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) act_ms 
 #define fm1_enc_take enc_act
 #include "look.c"
 #include "views.c"
+#include "wonder.c"
 #include "rack.c"
 #include "manual.c"
 #include "menu.c"
@@ -61,6 +62,7 @@ static void paint(uint32_t y0, uint32_t y1)                     /* rows y0 .. y1
         cv_begin(240, h, C_K);
         cv_oy = -(int32_t)y0;
         if (man_on) scene_man();
+        else if (pierre_on && !pick_on && !fx_on && !menu_on) scene_pierre();
         else if (pick_on) scene_pick();
         else if (fx_on && !menu_on) scene_fx();
         else if (menu_on) { if (y0 < Y_HDR) scene_head(); if (y0 + h > Y_HDR && y0 < Y_LOW - 4u) { if (view_now == V_STEPS) scene_steps(); else if (view_now == V_FLY) scene_fly(); else if (view_now == V_WALK) scene_walk(); else scene_play(); } if (y0 + h > Y_LOW - 4u) scene_low(); scene_menu(); }
@@ -74,6 +76,7 @@ static void paint(uint32_t y0, uint32_t y1)                     /* rows y0 .. y1
             }
             if (y0 + h > Y_LOW - 4u) scene_low();
         }
+        if (!man_on && !menu_on && !pierre_on && !pick_on && !fx_on) wd_post();
         cv_oy = 0;
         if (!man_on && !menu_on) fx_post(y0, h);
         td += fm1_ms - ts;
@@ -82,24 +85,6 @@ static void paint(uint32_t y0, uint32_t y1)                     /* rows y0 .. y1
     }
     if (fm1_ms - t0 > paint_max) paint_max = fm1_ms - t0;
     if (td > draw_max) draw_max = td;
-}
-
-/* ---- power on: a big smiley, grinning, looking about */
-static void splash(void)
-{
-    uint32_t f, y0;
-    for (f = 0; f < 22u; f++) {
-        uint32_t t0 = fm1_ms;
-        for (y0 = 0; y0 < 240u; y0 += 60u) {
-            cv_begin(240, 60, C_K);
-            cv_oy = -(int32_t)y0;
-            floor_rows(0, 240, 2 + (int32_t)f, f * 6u);
-            smiley(120, 92, 56, f < 14u ? (int32_t)f : 14 - (int32_t)(f - 14u), (int32_t)sina(f * 3u) / 20);
-            cv_oy = 0;
-            cv_blit(0, y0);
-        }
-        while (fm1_ms - t0 < 50u) platform_poll();
-    }
 }
 
 static void pat_pick(uint32_t p)                                /* a pattern: now if it is stopped, at the end of the loop if it plays */
@@ -127,7 +112,7 @@ static void app_main(void)
     uint32_t loop_t = 0, pt_y = 0, pt_end = 0, pt_t = 0;                   /* the effect screen goes out a strip a turn, so the loop keeps listening */
     rnd_s = fm1_ticks() ^ 0x1234567u;
 #if !defined(SMILEY_HOST) || defined(SPLASH_DEMO)
-    splash();
+    splash_flyer();
 #endif
     bank_load();
     if (settings_load(&cfg, sizeof cfg) != 0 || cfg.magic != SET_OK) {                  /* a new device, or a new firmware */ cfg.slot = 0; cfg.oct = 1; cfg.view = 0; cfg.magic = SET_OK; }
@@ -172,6 +157,10 @@ static void app_main(void)
                         else if (d2 == 30u) { crit_kind = 1u; crit_ms = fm1_ms; }
                         redraw |= 7;
                     }
+                    else if (d1 == 124u) { wd_mooed = 1; wd_moo_ms = fm1_ms ? fm1_ms : 1u; redraw |= 3; }                         /* test: the moo */
+                    else if (d1 == 127u) { kn.wave = (uint8_t)((kn.wave & 0x80u) | (d2 & 0x7Fu)); redraw |= 7; }                   /* test: the switch bits */
+                    else if (d1 == 125u) { wd_kind = d2; wd_ms = fm1_ms ? fm1_ms : 1u; redraw |= 3; }                              /* test: a knob finds something */
+                    else if (d1 == 126u) { pierre_on = d2 ? 1u : 0u; redraw |= 7; }                                              /* test: Pierre, 1985 */
                     else if (d1 == 117u) { rack.on = d2 ? 1u : 0u; dirty = 1; t_change = fm1_ms; redraw |= 7; }                    /* test: the rack on / off */
                     else if (d1 == 118u && (d2 >> 2 & 3u) < FXN && (d2 & 3u) < FX_KINDS) { fx_set(d2 >> 2 & 3u, d2 & 3u, d2 >> 4 & 3u); dirty = 1; t_change = fm1_ms; redraw |= 7; }     /* test: put a unit in a slot (type 0 none, 1 delay, 2 drive, 3 crush; slot * 4; type + 16 * flavour) */
                     else if (d1 == 114u) fake_b |= 1u << (d2 & 15u);                                                           /* test: a button press */
@@ -192,6 +181,7 @@ static void app_main(void)
                 midi_send(0xB0u, 101u, view_now | (dirty ? 16u : 0u) | (seq_run ? 32u : 0u) | (pick_on ? 64u : 0u));
                 midi_send(0xB0u, 107u, slot_cur);
                 midi_send(0xB0u, 109u, pat_idx);
+                midi_send(0xB0u, 116u, kn.wave & 127u);                                                                     /* the switch bits: 1 square, 2 accents off, 4-8 BASS, 16-32 DRIFT, 64 DIODE (a check) */
                 midi_send(0xB0u, 119u, paint_max > 127u ? 127u : paint_max);
                 midi_send(0xB0u, 120u, draw_max > 127u ? 127u : draw_max);
                 midi_send(0xB0u, 121u, loop_max > 127u ? 127u : loop_max);
@@ -204,6 +194,11 @@ static void app_main(void)
         if (ext_on && fm1_ms - ext_ms > 400u) { ext_on = 0; redraw |= 1; }         /* the clock stopped: back to our own */
         keys = fm1_in.notes;
         if (keys != prev || fm1_in.buttons != btn_was) act_ms = fm1_ms;
+        {   static uint32_t fp_was;                             /* the glitch is drawn onto whatever strip is painted while it is on, and the knobs are only repainted when you touch them: so when it ends, paint everything once. It can never stay on. */
+            uint32_t fp = fx_post_on();
+            if (fp_was && !fp) redraw |= 7;
+            fp_was = fp;
+        }
         btn_was = fm1_in.buttons;
         down = keys & ~prev;
         up = prev & ~keys;
@@ -232,7 +227,7 @@ static void app_main(void)
         home_was = home_now;
         if (b & (1u << BTN_GLO) && home_now && !menu_on) { menu_on = 1; menu_sel = 0; man_on = 0; man_lock = 0; pick_on = 0; home_used = 1; redraw |= 7; b &= ~(1u << BTN_GLO); }       /* HOME first, then GLO: the menu */
         if (b & (1u << BTN_GLO) && !man_on && !menu_on) {                                                              /* the manual, at the chapter for where you are */
-            man_open(pick_on ? MC_PROJ : fx_on ? MC_FX : view_now == V_STEPS ? MC_STEPS : view_now == V_PLAY ? MC_PLAY : MC_QUICK, fx_on && !pick_on ? fx_pos(0) : 0u);          /* (the odd views are not explained: try it and find out) */
+            man_open(pick_on ? MC_PROJ : fx_on ? MC_FX : view_now == V_STEPS ? MC_STEPS : view_now == V_PLAY ? MC_PLAY : MC_QUICK, 0u);          /* (the odd views are not explained: try it and find out) */
             redraw |= 7;
             b &= ~(1u << BTN_GLO);
         }
@@ -242,8 +237,8 @@ static void app_main(void)
             for (k = 0; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
             fm1_enc_take(ENC_ALGORITHM);
             if (menu_on == 1u) {
-                if (e) { menu_sel = e > 0 ? 1u : 0u; redraw |= 7; }
-                if (b & (1u << BTN_OCT_UP)) { menu_on = 2u + menu_sel; dice_t0 = dice_prog = dice_armed = 0; redraw |= 7; }
+                if (e) { int32_t v = (int32_t)menu_sel + (e > 0 ? 1 : -1); menu_sel = (uint32_t)(v < 0 ? 0 : v > 2 ? 2 : v); redraw |= 7; }
+                if (b & (1u << BTN_OCT_UP)) { if (menu_sel == 2u) { pierre_on ^= 1u; menu_on = 0; } else { menu_on = 2u + menu_sel; dice_t0 = dice_prog = dice_armed = 0; } redraw |= 7; }
                 if (b & (1u << BTN_OCT_DOWN)) { menu_on = 0; redraw |= 7; }
             } else if (menu_on == 2u) {
                 if (b & (1u << BTN_OCT_UP)) { factory_reset(); dirty = cfg_dirty = 0; menu_on = 0; redraw |= 7; }
@@ -305,20 +300,21 @@ static void app_main(void)
             continue;
         }
         if (fx_on) {                                                                                      /* the effect: ALGORITHM walks through them all (none first), HOME goes back */
-            uint32_t ty = rack.u[0].type;
+            uint32_t ty = rack.u[fx_sel].type;
+            e = fm1_enc_take(ENC_SELECT);                                                                 /* SELECT: slot 1 or slot 2 */
+            if (e) { fx_sel = e > 0 ? 1u : 0u; ty = rack.u[fx_sel].type; redraw |= 7; }
             e = fm1_enc_take(ENC_ALGORITHM);
             if (e) {
-                int32_t w = (int32_t)fx_pos(0) + e;
-                w = w < 0 ? 0 : w > 7 ? 7 : w;
-                if (w != (int32_t)fx_pos(0)) { fx_pick(0, (uint32_t)w); rack.on = rack.u[0].type != FX_NONE; dirty = 1; t_change = fm1_ms; }
+                int32_t w = (int32_t)fx_pos(fx_sel) + e;
+                w = w < 0 ? 0 : w > (int32_t)FXL_N - 1 ? (int32_t)FXL_N - 1 : w;
+                if (w != (int32_t)fx_pos(fx_sel)) { fx_pick(fx_sel, (uint32_t)w); rack.on = fx_any(); ty = rack.u[fx_sel].type; dirty = 1; t_change = fm1_ms; }
                 redraw |= 7;
             }
             fm1_enc_take(ENC_PRESETS);
-            e = fm1_enc_take(ENC_SELECT);
             for (k = 0; k < 4u; k++) {
                 e = fm1_enc_take(ENC_KNOB1 + k);
                 if (!e || !ty) continue;
-                fx_turn(0, k, e);
+                fx_turn(fx_sel, k, e);
                 dirty = 1; t_change = fm1_ms; redraw |= 7;
             }
             for (k = 0; k < 27u; k++) {                                                                   /* the keys play the bass, to hear what you are doing */
@@ -334,7 +330,7 @@ static void app_main(void)
             edit_was = edit_now; sel_was = sel_now; sel_was2 = sel_now;
             fm1_led_key(BTN_PLAY, seq_run); fm1_led_key(BTN_FX, 1); fm1_led_glow(BTN_SAVE, dirty); fm1_led_glow(BTN_REC, undo_has);
             if (pt_y >= pt_end && fm1_ms - last_draw > 45u) redraw |= 3;                                  /* (the lower rows go to the screen only when they change: the screen is the slow part) */
-            if (redraw && pt_y >= pt_end && fm1_ms - last_draw >= 20u) { anim_t = fm1_ms / 24u; pt_y = 0; pt_end = redraw & 4u ? 240u : rack.u[0].type ? Y_LOW - 4u : 214u; last_draw = fm1_ms; redraw = 0; }
+            if (redraw && pt_y >= pt_end && fm1_ms - last_draw >= 20u) { anim_t = fm1_ms / 24u; pt_y = 0; pt_end = redraw & 4u ? 240u : rack.u[fx_sel].type ? Y_LOW - 4u : 214u; last_draw = fm1_ms; redraw = 0; }
             if (pt_y < pt_end && fm1_ms - pt_t >= 13u) { uint32_t y1 = pt_y + 64u > pt_end ? pt_end : pt_y + 64u; paint(pt_y, y1); pt_y = y1; pt_t = fm1_ms; }          /* one strip, then back to the knobs while it travels to the screen (about 12 ms) */
             continue;
         }
@@ -406,7 +402,7 @@ static void app_main(void)
         if (e) { int32_t v = (int32_t)pat_target() + e; pat_pick((uint32_t)(v < 0 ? 0 : v >= (int32_t)PATS ? (int32_t)PATS - 1 : v)); redraw |= 7; }
         for (k = 0; k < 4u; k++) {
             e = fm1_enc_take(ENC_KNOB1 + k);
-            if (e) { knob_turn(page, k, e); dirty = 1; t_change = fm1_ms; redraw |= 6; }
+            if (e) { knob_turn(page, k, e); wd_touch(page, k); wd_check(); dirty = 1; t_change = fm1_ms; redraw |= 6; }
         }
         if (view_now == V_WALK) {
             walk_x += ((walk_lane << 4) - walk_x) / 3;
@@ -429,13 +425,14 @@ static void app_main(void)
                 if (PAT[seq_step % STEPS].note && (PAT[seq_step % STEPS].fl & F_ACC)) shock_ms = fm1_ms ? fm1_ms : 1u;       /* an accent: a shockwave */
             }
             if (fm1_ms - last_draw > 45u) redraw |= 3;
-        } else if (fm1_ms - act_ms > 8000u && fm1_ms - last_draw > 80u && !menu_on) redraw |= 3;                            /* left alone: it keeps moving */
+        } else if (fm1_ms - act_ms > 8000u && fm1_ms - last_draw > 80u && !menu_on) redraw |= 3;
+        if ((wd_on() || pierre_on) && !menu_on && fm1_ms - last_draw > 45u) redraw |= 3;
         fm1_led_key(BTN_PLAY, seq_run);
         fm1_led_key(BTN_ENV, view_now != V_PLAY && (PAT[cur].fl & F_ACC));
         fm1_led_key(BTN_SEL, view_now != V_PLAY && (PAT[cur].fl & F_SLD));
         fm1_led_glow(BTN_SAVE, dirty);
         fm1_led_glow(BTN_REC, undo_has); fm1_led_glow(BTN_SEL, 0); fm1_led_glow(BTN_EDIT, 0);
-        fm1_led_key(BTN_FX, fx_on); fm1_led_glow(BTN_FX, rack.on && rack.u[0].type);
+        fm1_led_key(BTN_FX, fx_on); fm1_led_glow(BTN_FX, rack.on && fx_any());
         fm1_led_key(BTN_OCT_DOWN, cfg.oct < 1u);
         fm1_led_key(BTN_OCT_UP, cfg.oct > 1u);
         {                                                       /* the keys: the cursor's note glows, the playing note is lit; in PLAY the patterns, in FX the switches */

@@ -33,6 +33,10 @@ table("DEC_STEP", "uint16_t", [min(65535, round(8 / (0.03 * (2.6 / 0.03) ** (i /
 table("GLIDE_G", "uint16_t", [round((1 - math.exp(-8 / (0.008 * (0.4 / 0.008) ** (i / 31) * FS))) * 32768) for i in range(32)], 16)
 # TUNE 0..31: -100 .. +93 cents, a ratio in Q15
 table("TUNE_R", "uint16_t", [round(32768 * 2 ** ((i - 16) * 6.25 / 1200)) for i in range(32)], 16)
+# DRIVE 0..31 as the gain on the oscillator into the filter, Q8: 0 is silence (the filter rings alone), 1..16 as it always was ((4 + n) / 6), then up to 40x
+table("DRV_G", "uint16_t", [0] + [round((4 + i) / 6 * 256) for i in range(1, 17)] + [round(10 / 3 * 12 ** ((i - 16) / 15) * 256) for i in range(17, 32)], 16)
+# VOL DEC 0..15: the volume envelope's step per control tick (5.5 kHz), Q15: 16 ms .. 3 s of time constant (16 and up hold 3 s and lift the floor, 31 never falls)
+table("VD_G", "uint16_t", [max(1, round((1 - math.exp(-8 / (0.016 * (3 / 0.016) ** (i / 15) * FS))) * 32768)) for i in range(16)], 16)
 table("SIN64", "int8_t", [round(127 * math.sin(2 * math.pi * i / 64)) for i in range(64)], 16)
 
 # the FX rack (fx.c): a filter knob 0..31 is 70 Hz .. 10 kHz, log

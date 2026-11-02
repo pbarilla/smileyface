@@ -1,0 +1,15 @@
+# the new drive types: walk to Crunch and Fuzz (the drive row is 7th to 9th), turn DRIVE up
+100 btn 2
+200 enc 1 1
+210 enc 1 1
+220 enc 1 1
+230 enc 1 1
+240 enc 1 1
+250 enc 1 1
+260 enc 1 1
+400 enc 2 6
+500 shot
+600 enc 1 1
+700 enc 2 6
+800 shot
+900 end

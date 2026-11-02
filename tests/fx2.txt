@@ -1,0 +1,10 @@
+# two effects in a row: slot 1 a tape delay, SELECT to slot 2, a fold; SELECT back
+100 btn 2
+200 enc 1 2
+300 enc 0 1
+400 enc 1 7
+500 shot
+600 enc 4 3
+700 enc 0 -1
+800 shot
+900 end

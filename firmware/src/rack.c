@@ -1,13 +1,13 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* The FX rack screen (FX opens it): the bass, four slots and the output as boxes joined by cables, a picture of what the selected unit does,
  * and its knobs. A unit has its own colour all over the screen, so you know whose knobs you are holding. Included by smileyface.c after views.c. */
-static uint32_t fx_on;
+static uint32_t fx_on, fx_sel;                                   /* the FX view is open; the slot (0 or 1) whose knobs you hold */
 static const uint16_t FX_COL[FX_KINDS] = {C_PINK, C_CY, C_OR, C_LIME};
-static const char *const FXT_NAME[FX_KINDS][3] = {{""}, {"Robot on pills", "Tapes of wrath", "Take the dub"}, {"thats why i love...", "Laundry Day", ""}, {"Bitcrush (hey,|not everything is a pun)", "Dead Radio", ""}};      /* what each is called */
-static const char *const FXK_NAME[FX_KINDS][3][4] = {
+static const char *const FXT_NAME[FX_KINDS][4] = {{""}, {"Robot on pills", "Tapes of wrath", "Take the dub"}, {"thats why i love...", "Laundry Day", "Crunch", "Fuzz"}, {"Bitcrush (hey,|not everything is a pun)", "Dead Radio", ""}};      /* what each is called */
+static const char *const FXK_NAME[FX_KINDS][4][4] = {
     {{"", "", "", ""}},
     {{"TIME", "FEEDBK", "MIX", "TONE"}, {"TIME", "FEEDBK", "MIX", "WOW"}, {"TIME", "FEEDBK", "CUTOFF", "LEVEL"}},
-    {{"DRIVE", "TONE", "MIX", "LEVEL"}, {"DRIVE", "TONE", "MIX", "LEVEL"}, {"DRIVE", "TONE", "MIX", "LEVEL"}},
+    {{"DRIVE", "TONE", "MIX", "LEVEL"}, {"DRIVE", "TONE", "MIX", "LEVEL"}, {"DRIVE", "TONE", "MIX", "LEVEL"}, {"DRIVE", "TONE", "MIX", "LEVEL"}},
     {{"BITS", "RATE", "MIX", "LEVEL"}, {"BAND", "BITS", "MIX", "LEVEL"}, {"", "", "", ""}},
 };
 
@@ -131,14 +131,14 @@ static void fx_weird(int32_t x, int32_t y, const char *w, uint16_t c)       /* a
 }
 static void scene_fx(void)
 {
-    uint32_t k, t = rack.u[0].type, pos = fx_pos(0);
+    uint32_t k, t = rack.u[fx_sel].type, pos = fx_pos(fx_sel);
     uint16_t col = FX_COL[t];
     floor_rows((int32_t)Y_HDR, (int32_t)Y_LOW - 4, 4 + shock_bump(), anim_t);
     if (cv_vis(0, (int32_t)Y_HDR)) {                            /* (the screen is drawn in strips, and each strip runs all of this: only what shows) */
                                                                 /* the header: the smiley, and what is on (the strip starts black: no need to paint it so) */
     smiley_g(23, 20, 16, 0, seq_run ? (int32_t)sina(seq_step * 4u) / 40 : 0, gag_kind && fm1_ms - gag_ms < GAG_MS ? gag_kind : 0u, (int32_t)sina((fm1_ms - gag_ms) * 32u / GAG_MS) * 100 / 127);
     if (t) {                                                    /* its name, right on top (twice, a pixel apart, to be fat); a | breaks the line */
-        const char *nm = FXT_NAME[t][rack.u[0].sub];
+        const char *nm = FXT_NAME[t][rack.u[fx_sel].sub];
         char l1[24], l2[28];
         uint32_t n = 0, m = 0;
         while (nm[n] && nm[n] != '|' && n < 23u) { l1[n] = nm[n]; n++; }
@@ -149,10 +149,19 @@ static void scene_fx(void)
             cv_text(235 - text_w(&FONT_S, l2), 22, &FONT_S, l2, col); cv_text(236 - text_w(&FONT_S, l2), 22, &FONT_S, l2, col);
         } else { cv_text(235 - text_w(&FONT_S, l1), 12, &FONT_S, l1, col); cv_text(236 - text_w(&FONT_S, l1), 12, &FONT_S, l1, col); }
     }
+    for (k = 0; k < FXU; k++) {                                 /* the bass goes into 1, then 2: two boxes and an arrow, a bracket under yours */
+        int32_t x = 48 + (int32_t)k * 36, tp = rack.u[k].type;
+        char dg[2] = {(char)('1' + k), 0};
+        if (tp) cv_rect(x, 8, 22, 22, FX_COL[tp]);
+        else { cv_rect(x, 8, 22, 2, C_RING); cv_rect(x, 28, 22, 2, C_RING); cv_rect(x, 8, 2, 22, C_RING); cv_rect(x + 20, 8, 2, 22, C_RING); }
+        text_mid(x + 11, 14, dg, tp ? C_K : C_RING);
+        if (k == fx_sel) { cv_rect(x, 33, 22, 2, C_Y); cv_rect(x, 31, 2, 3, C_Y); cv_rect(x + 20, 31, 2, 3, C_Y); }
+        if (k + 1u < FXU) { cv_line(x + 24, 19, x + 33, 19, C_W); cv_line(x + 29, 15, x + 33, 19, C_W); cv_line(x + 29, 23, x + 33, 19, C_W); }
+    }
     cv_rect(0, (int32_t)Y_HDR - 3, 240, 3, C_Y);
     }
     if (t) {
-        const fxu_t *u = &rack.u[0];
+        const fxu_t *u = &rack.u[fx_sel];
         static const uint16_t KC[4] = {C_LIME, C_PINK, C_CY, C_OR};
         if (cv_vis((int32_t)Y_HDR, (int32_t)Y_LOW - 4)) fx_picture(u);
         if (cv_vis((int32_t)Y_LOW, 240)) for (k = 0; k < 4u; k++) {
@@ -166,8 +175,8 @@ static void scene_fx(void)
         if (cv_vis(160, 195)) for (i = 0; i < 20; i++) cv_rect(2 + i + bob, 177 - i * 15 / 20 - 1, 1, i * 30 / 20 + 3, C_PINK);                                 /* a fat head, tip at the edge */
         if (cv_vis(158, 210)) { cv_rect(76, 158, 164, 52, C_K); fx_weird(82, 162, "TWIST", C_Y); fx_weird(82, 184, "THIS", C_Y); }
     }
-    if (cv_vis(218, 240)) for (k = 0; k < 8u; k++) {            /* the row ALGORITHM walks: a smiley for each, a bracket on yours */
-        int32_t x = 18 + (int32_t)k * 29;
+    if (cv_vis(218, 240)) for (k = 0; k < FXL_N; k++) {          /* the row ALGORITHM walks: a smiley for each, a bracket on yours */
+        int32_t x = 13 + (int32_t)k * 24;
         mini(x, 228, k == pos ? 3u : k == 0u ? 0u : 1u);
         if (k == pos) { cv_rect(x - 9, 237, 19, 2, C_Y); cv_rect(x - 9, 234, 2, 4, C_Y); cv_rect(x + 8, 234, 2, 4, C_Y); }
     }

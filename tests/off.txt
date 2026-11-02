@@ -1,0 +1,20 @@
+# BASS, DRIFT, DIODE up, then back down: they must turn off
+200 enc 1 1
+210 enc 1 1
+220 enc 1 1
+230 enc 1 1
+240 enc 1 1
+250 enc 1 1
+300 enc 2 1
+310 enc 2 1
+320 enc 3 1
+330 enc 3 1
+340 enc 4 1
+500 shot
+600 enc 2 -1
+610 enc 2 -1
+620 enc 3 -1
+630 enc 3 -1
+640 enc 4 -1
+800 shot
+900 end

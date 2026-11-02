@@ -25,12 +25,13 @@ static void clean_slot(slot_t *s)                               /* whatever came
         if (s->plen[a] < 1u || s->plen[a] > STEPS) s->plen[a] = STEPS;
     }
     for (a = 0; a < 19u; a++) if (k[a] > KMAX) k[a] = KMAX;
-    if (s->kn.wave > 3u) s->kn.wave &= 3u;
+    if ((s->kn.wave >> 2 & 3u) == 3u) s->kn.wave &= (uint8_t)~0x0Cu;          /* BASS and DRIFT go 0..2 */
+    if ((s->kn.wave >> 4 & 3u) == 3u) s->kn.wave &= (uint8_t)~0x30u;
     if (s->kn.lvl < -24 || s->kn.lvl > 7) s->kn.lvl = 0;
     if (s->bpm < 60u || s->bpm > 200u) s->bpm = 126;
     if (s->pcur >= PATS) s->pcur = 0;
     fx_sanitize(&s->fx);
-    s->used = 1; s->pad = 0;
+    s->used = 1; if (s->pad > 31u) s->pad = 0;                  /* (pad: 31 less VOL DEC, so older projects hold the note) */
 }
 static uint32_t px_snapshot(uint32_t slot)       /* into px: the length, 0 when empty */
 {

@@ -1,8 +1,6 @@
-# the power-on smiley (build with -DSPLASH_DEMO)
+# the launch screen is the flyer (build with -DSPLASH_DEMO)
 100 shot
-300 shot
-500 shot
-700 shot
-900 shot
+600 shot
 1100 shot
-1500 end
+1500 shot
+2200 end

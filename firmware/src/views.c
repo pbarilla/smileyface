@@ -5,6 +5,11 @@ enum { V_STEPS, V_FLY, V_WALK, V_PLAY, VIEWS };
 #define Y_HDR 44u
 #define Y_LOW 176u                              /* the knobs and the tabs start here */
 #define PAT pats[pat_idx]
+/* (wonder.c) */
+static uint32_t wd_gag(int32_t *gp);
+static void wd_rings(void);
+static void vortex_floor(void);
+#define VORTEX_MS 45000u
 
 static struct { uint8_t slot, oct, view, magic; } cfg;          /* the settings sector: where you were */
 #define SET_OK 0xA6u
@@ -18,54 +23,62 @@ static uint32_t rnd_s;
 static uint32_t rnd(void) { rnd_s = rnd_s * 1664525u + 1013904223u; return rnd_s >> 8; }
 
 /* ---- the switches: the last pages of the ALGORITHM list, drawn as switches */
-enum { P_WAVE, P_SUB, P_MUF, P_SWEEP, P_HIRES, P_POLES, P_ACCON, PADS_USED };
+enum { P_WAVE, P_SUB, P_MUF, P_SWEEP, P_HIRES, P_POLES, P_ACCON, P_BASS, P_DRIFT, P_DIODE, PADS_USED };
+static uint32_t pad_max(uint32_t p) { return p == P_SUB ? 3u : p == P_MUF || p == P_SWEEP || p == P_HIRES || p == P_POLES || p == P_BASS || p == P_DRIFT ? 2u : 1u; }       /* the top setting of a switch */
 static uint32_t pad_level(uint32_t p)                           /* a switch's setting, 0..2 */
 {
     switch (p) {
     case P_WAVE: return kn.wave & 1u;
-    case P_SUB: return kn.sub ? 1u : 0u;
+    case P_SUB: return kn.sub == 0u ? 0u : kn.sub <= 16u ? 1u : kn.sub <= 24u ? 2u : 3u;
     case P_MUF: return kn.muf == 0u ? 0u : kn.muf < 16u ? 1u : 2u;
     case P_SWEEP: return kn.swp < 8u ? 0u : kn.swp < 20u ? 1u : 2u;
-    case P_HIRES: return kn.hir ? 1u : 0u;
-    case P_POLES: return kn.pol >= 16u ? 1u : 0u;
+    case P_HIRES: return kn.hir == 15u ? 0u : kn.hir ? 1u : 2u;       /* the Devil Fish's switch: 0 no sweep + hi res, 1 sweep + hi res, 2 sweep */
+    case P_POLES: return kn.wave >> 7 ? 0u : kn.pol >= 16u ? 2u : 1u;          /* 2, 3 or 4 poles */
+    case P_BASS: return kn.wave >> 2 & 3u;
+    case P_DRIFT: return kn.wave >> 4 & 3u;
+    case P_DIODE: return kn.wave >> 6 & 1u;
     case P_ACCON: return kn.wave >> 1 & 1u;                     /* 1 = accents off */
     default: return 0;
     }
 }
 static void pad_set(uint32_t p, uint32_t l)                     /* a switch to a given setting */
 {
-    static const uint8_t MUFV[3] = {0, 10, 22}, SWPV[3] = {3, 12, 28};
+    static const uint8_t MUFV[3] = {0, 10, 22}, SWPV[3] = {3, 12, 28}, SUBV[4] = {0, 12, 24, 31}, ACSV[3] = {15, 31, 0};
     switch (p) {
     case P_WAVE: kn.wave = (uint8_t)((kn.wave & ~1u) | (l & 1u)); break;
-    case P_SUB: kn.sub = l ? 24u : 0u; break;
+    case P_SUB: kn.sub = SUBV[l & 3u]; break;
     case P_MUF: kn.muf = MUFV[l % 3u]; break;
     case P_SWEEP: kn.swp = SWPV[l % 3u]; break;
-    case P_HIRES: kn.hir = l ? 31u : 0u; break;
-    case P_POLES: kn.pol = l ? 31u : 0u; break;
+    case P_HIRES: kn.hir = ACSV[l % 3u]; break;
+    case P_POLES: kn.pol = l == 2u ? 31u : 0u; kn.wave = (uint8_t)((kn.wave & 0x7Fu) | (l == 0u ? 0x80u : 0u)); break;
+    case P_BASS: kn.wave = (uint8_t)((kn.wave & ~0x0Cu) | (l % 3u) << 2); break;
+    case P_DRIFT: kn.wave = (uint8_t)((kn.wave & ~0x30u) | (l % 3u) << 4); break;
+    case P_DIODE: kn.wave = (uint8_t)((kn.wave & ~0x40u) | (l & 1u) << 6); break;
     case P_ACCON: kn.wave = (uint8_t)((kn.wave & ~2u) | (l & 1u) << 1); break;
     default: break;
     }
 }
 
 /* ---- the knobs: five pages of four, in the order of the TD-3-MO's panel (the filter first, then what each note does, then the extras) */
-#define PAGES 6u
+#define PAGES 7u
 #define OFS(f) ((uint8_t)__builtin_offsetof(knobs_t, f))
-enum { K_TEMPO = 250, K_LEN = 251, K_LEVEL = 252, K_NONE = 255, K_SW = 200 };      /* K_SW + a switch pad: a stepped knob */
+enum { K_TEMPO = 250, K_LEN = 251, K_LEVEL = 252, K_VDEC = 253, K_NONE = 255, K_SW = 200 };      /* K_SW + a switch pad: a stepped knob */
 static const char *const KNAME[PAGES][4] = {
     {"CUTOFF", "RESON", "ENVMOD", "DECAY"}, {"TUNE", "ACCENT", "SLIDE", "TEMPO"}, {"DRIVE", "ACC DEC", "TRACK", "ATTACK"},
-    {"FILT FM", "SWING", "LENGTH", "LEVEL"}, {"WAVE", "SUB OSC", "MUFFLE", "SWEEP"}, {"HI RES", "POLES", "ACCENT", ""}};
+    {"FILT FM", "VOL DEC", "LENGTH", "LEVEL"}, {"WAVE", "SUB OSC", "MUFFLE", "SWEEP"}, {"ACC SWP", "SWING", "POLES", "ACCENT"}, {"BASS", "DRIFT", "DIODE", ""}};
 static const uint8_t KP[PAGES][4] = {
     {OFS(cut), OFS(res), OFS(env), OFS(dec)}, {OFS(tun), OFS(acc), OFS(sld), K_TEMPO}, {OFS(drv), OFS(adc), OFS(trk), OFS(atk)},
-    {OFS(fm), OFS(swg), K_LEN, K_LEVEL},
-    {K_SW + P_WAVE, K_SW + P_SUB, K_SW + P_MUF, K_SW + P_SWEEP}, {K_SW + P_HIRES, K_SW + P_POLES, K_SW + P_ACCON, K_NONE}};
+    {OFS(fm), K_VDEC, K_LEN, K_LEVEL},
+    {K_SW + P_WAVE, K_SW + P_SUB, K_SW + P_MUF, K_SW + P_SWEEP}, {K_SW + P_HIRES, OFS(swg), K_SW + P_POLES, K_SW + P_ACCON}, {K_SW + P_BASS, K_SW + P_DRIFT, K_SW + P_DIODE, K_NONE}};
 static uint32_t knob_val(uint32_t pg, uint32_t k, uint32_t *vmax)
 {
     uint8_t o = KP[pg][k];
     *vmax = KMAX;
     if (o == K_TEMPO) { *vmax = 140; return seq_bpm - 60u; }
     if (o == K_LEN) { *vmax = 16; return plen[pat_idx] ? plen[pat_idx] : STEPS; }
-    if (o >= K_SW && o < K_SW + PADS_USED) { *vmax = o == K_SW + P_MUF || o == K_SW + P_SWEEP ? 2u : 1u; return o == K_SW + P_ACCON ? 1u - pad_level(P_ACCON) : pad_level(o - K_SW); }      /* (the accent switch: up is on) */
+    if (o >= K_SW && o < K_SW + PADS_USED) { *vmax = pad_max(o - K_SW); return o == K_SW + P_ACCON ? 1u - pad_level(P_ACCON) : pad_level(o - K_SW); }      /* (the accent switch: up is on) */
     if (o == K_LEVEL) { *vmax = 31; return (uint32_t)(24 + kn.lvl); }
+    if (o == K_VDEC) return vol_dec;
     if (o == K_NONE) return 0;
     return ((uint8_t *)&kn)[o];
 }
@@ -73,8 +86,9 @@ static void knob_turn(uint32_t pg, uint32_t k, int32_t e)
 {
     uint8_t o = KP[pg][k];
     if (o == K_TEMPO) { if (!ext_on) { int32_t v = (int32_t)seq_bpm + e; seq_bpm = (uint32_t)(v < 60 ? 60 : v > 200 ? 200 : v); } }
-    else if (o >= K_SW && o < K_SW + PADS_USED) { uint32_t p = o - K_SW, mx = p == P_MUF || p == P_SWEEP ? 2u : 1u, l = p == P_ACCON ? 1u - pad_level(p) : pad_level(p); int32_t v = (int32_t)l + (e < 0 ? -1 : 1); v = v < 0 ? 0 : v > (int32_t)mx ? (int32_t)mx : v; pad_set(p, p == P_ACCON ? 1u - (uint32_t)v : (uint32_t)v); }
+    else if (o >= K_SW && o < K_SW + PADS_USED) { uint32_t p = o - K_SW, mx = pad_max(p), l = p == P_ACCON ? 1u - pad_level(p) : pad_level(p); int32_t v = (int32_t)l + (e < 0 ? -1 : 1); v = v < 0 ? 0 : v > (int32_t)mx ? (int32_t)mx : v; pad_set(p, p == P_ACCON ? 1u - (uint32_t)v : (uint32_t)v); }
     else if (o == K_LEVEL) { int32_t v = 24 + (int32_t)kn.lvl + e; kn.lvl = (int8_t)((v < 0 ? 0 : v > 31 ? 31 : v) - 24); }
+    else if (o == K_VDEC) { int32_t v = (int32_t)vol_dec + e; vol_dec = (uint8_t)(v < 0 ? 0 : v > 31 ? 31 : v); }
     else if (o == K_NONE) { }
     else if (o == K_LEN) { int32_t v = (int32_t)(plen[pat_idx] ? plen[pat_idx] : STEPS) + e; plen[pat_idx] = (uint8_t)(v < 1 ? 1 : v > 16 ? 16 : v); }
     else { uint8_t *p = &((uint8_t *)&kn)[o]; int32_t v = (int32_t)*p + e; *p = (uint8_t)(v < 0 ? 0 : v > KMAX ? KMAX : v); }
@@ -87,7 +101,7 @@ static void fx_apply(uint32_t env_held, uint32_t play_view)     /* ENV held in P
 
 /* ---- the random weirdness: now and then (the main loop picks) the background changes, the header smiley pulls a face, the picture glitches or swaps
  * its colours, something crosses the screen */
-static uint32_t gag_kind, gag_ms, glitch_ms, swap_ms, swap_kind, crit_kind, crit_ms;
+static uint32_t gag_kind, gag_ms, glitch_ms = 0u - 240u, swap_ms = 0u - 2600u, swap_kind, crit_kind, crit_ms;      /* (the two start long ago: not on at power-on) */
 #define GAG_MS 1500u
 #define GLITCH_MS 240u
 #define CRIT_MS 4200u
@@ -112,6 +126,10 @@ static void critter(void)                                       /* a saucer cros
     disc(x, y - 5, 8, C_LIME);
     cv_rect(x - 14, y - 1, 3, 3, C_PINK); cv_rect(x - 2, y - 1, 3, 3, C_Y); cv_rect(x + 10, y - 1, 3, 3, C_PINK);
     cv_rect(x - 4, y - 8, 2, 3, C_K); cv_rect(x + 2, y - 8, 2, 3, C_K);
+}
+static uint32_t fx_post_on(void)                                /* is the glitch or a colour swap on the picture now? */
+{
+    return fm1_ms - glitch_ms < GLITCH_MS || (swap_kind == 1u && fm1_ms - swap_ms < 2600u) || (swap_kind == 2u && fm1_ms - swap_ms < 260u);
 }
 static void fx_post(uint32_t y0, uint32_t h)                    /* what happens to the picture after it is drawn: a glitch, a colour swap */
 {
@@ -192,7 +210,11 @@ static void scene_head(void)
 {
     char s[8];
     uint32_t now = seq_run ? seq_step : cur, nt = PAT[now % STEPS].note, ac = nt && (PAT[now % STEPS].fl & F_ACC);
-    smiley_g(23, 20, 16, ac ? 5 : 0, seq_run ? (int32_t)sina(seq_step * 4u) / 40 : 0, gag_kind && fm1_ms - gag_ms < GAG_MS ? gag_kind : 0u, (int32_t)sina((fm1_ms - gag_ms) * 32u / GAG_MS) * 100 / 127);
+    int32_t gp = (int32_t)sina((fm1_ms - gag_ms) * 32u / GAG_MS) * 100 / 127, g2 = 0;
+    uint32_t gk = gag_kind && fm1_ms - gag_ms < GAG_MS ? gag_kind : 0u, wg = wd_gag(&g2);
+    if (wg) { gk = wg; gp = g2; }
+    wd_rings();
+    smiley_g(23, 20, 16, ac ? 5 : 0, seq_run ? (int32_t)sina(seq_step * 4u) / 40 : 0, gk, gp);
     utoa3(s, pat_target() + 1u);                                /* the pattern, in a tag; pink and the number of the one you are heading for while another is cued */
     cv_rect(50, 9, 30, 24, cue_w != cue_r ? C_PINK : C_CY);
     cv_rect(52, 11, 26, 20, C_K);
@@ -207,7 +229,8 @@ static void scene_head(void)
 static void scene_steps(void)
 {
     uint32_t i, len = plen[pat_idx] ? plen[pat_idx] : STEPS;
-    floor_rows((int32_t)Y_HDR, (int32_t)Y_LOW - 4, 6 + env_view / 1800 + shock_bump() + idle_bump(), anim_t + (idle_ms() > 8000u ? anim_t * 2u : 0u));
+    if (fm1_ms - act_ms > VORTEX_MS) vortex_floor();
+    else floor_rows((int32_t)Y_HDR, (int32_t)Y_LOW - 4, 6 + env_view / 1800 + shock_bump() + idle_bump(), anim_t + (idle_ms() > 8000u ? anim_t * 2u : 0u));
     saucer();
     critter();
     for (i = 0; i < STEPS; i++) {
@@ -482,7 +505,7 @@ static void slot_apply(const slot_t *sl)                        /* a project's p
 {
     uint32_t a, b;
     for (a = 0; a < PATS; a++) { for (b = 0; b < STEPS; b++) pats[a][b] = sl->pats[a][b]; plen[a] = sl->plen[a] ? sl->plen[a] : STEPS; }
-    kn = sl->kn; seq_bpm = sl->bpm < 60u || sl->bpm > 200u ? 126u : sl->bpm;
+    kn = sl->kn; vol_dec = sl->pad > 31u ? 31u : (uint8_t)(31u - sl->pad); seq_bpm = sl->bpm < 60u || sl->bpm > 200u ? 126u : sl->bpm;
     pat_idx = sl->pcur < PATS ? sl->pcur : 0u; cue_clear(); cur = 0;
     fx_load(&sl->fx);
 }
@@ -490,7 +513,7 @@ static void slot_pack(slot_t *sl)                               /* what plays, a
 {
     uint32_t a, b;
     for (a = 0; a < PATS; a++) { for (b = 0; b < STEPS; b++) sl->pats[a][b] = pats[a][b]; sl->plen[a] = plen[a]; }
-    sl->kn = kn; sl->bpm = (uint8_t)seq_bpm; sl->pcur = (uint8_t)pat_idx; sl->used = 1; sl->fx = rack;
+    sl->kn = kn; sl->bpm = (uint8_t)seq_bpm; sl->pcur = (uint8_t)pat_idx; sl->used = 1; sl->pad = (uint8_t)(31u - vol_dec); sl->fx = rack;
 }
 static void slot_load(uint32_t i)
 {

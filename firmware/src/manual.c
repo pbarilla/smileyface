@@ -17,47 +17,29 @@ static const mpage_t MP_QUICK[] = {
     {"", M_HOME | M_SMALL, "Tap HOME. Try it and find out."},
 };
 static const mpage_t MP_STEPS[] = {
-    {"Write", M_KEYS, "Press a key to write a note on the cursor's step. The cursor hops on to the next step."},
-    {"Accent", M_ENV | M_KEYS, "Press ENV to add an accent to the step. Hold ENV while you press a key to write it with an accent."},
-    {"Slide", M_SEL | M_KEYS, "Tap SEL to slide the step into the next one. Hold SEL while you press a key to write it with a slide."},
-    {"Wrap", M_SEL | M_SELECT | M_SMALL, "Hold SEL and turn SELECT to wrap the pattern along. The steps slide forwards or backwards, and the ones that fall off one end come back at the other."},
-    {"Rests", M_EDIT | M_SELECT, "Press EDIT to make a rest. Turn SELECT to move the cursor without writing."},
-    {"Play", M_PLAY | M_PRESETS, "Press PLAY to start and stop. Turn PRESETS to pick another of your 16 patterns."},
-    {"Octave", M_OCTD | M_OCTU, "Press OCT- or OCT+ to play lower or higher. The lights show how far you've gone."},
-    {"Lucky dip", M_LFO | M_ARP | M_REC, "Press LFO for a random pattern. Press ARP to nudge a few steps. Press REC to undo."},
+    {"Write", M_KEYS | M_OCTD | M_OCTU, "Press a key to drop a note. OCT- and OCT+ move the keys."},
+    {"Accent", M_ENV | M_KEYS, "Press ENV to make a step shout."},
+    {"Slide", M_SEL | M_KEYS, "Tap SEL to glide into the next step."},
+    {"Rests", M_EDIT | M_SELECT, "Press EDIT for a rest. Turn SELECT to look around."},
+    {"Go", M_PLAY | M_PRESETS, "Press PLAY. Turn PRESETS for another pattern."},
 };
 static const mpage_t MP_KNOBS[] = {
-    {"Live", M_KNOBS | M_SMALL, "Turn KNOB 1 to 4 while it plays, in any view. The dials at the bottom show where they are."},
-    {"More knobs", M_ALGO, "Turn ALGORITHM to reach the next page of knobs. The dots at the right show which page you're on."},
-    {"Filter", M_KNOBS | M_SMALL, "CUTOFF opens the filter. RESON makes it sing. ENVMOD sets how far each note sweeps it. DECAY sets how long the sweep takes."},
-    {"Tune and accent", M_KNOBS | M_SMALL, "TUNE nudges the pitch. ACCENT is how hard accents hit. SLIDE is how long slides take. TEMPO sets the speed."},
-    {"Devil Fish", M_KNOBS | M_SMALL, "DRIVE pushes the oscillator into the filter. ACC DEC is how long an accent rings. TRACK makes the filter follow the pitch. ATTACK softens each note's start."},
-    {"Extras", M_KNOBS | M_SMALL, "FILT FM lets the oscillator shake the filter. SWING swings the odd steps late. LENGTH sets how many steps play. LEVEL sets how loud it is."},
-    {"Switches", M_KNOBS | M_ALGO | M_SMALL, "Turn ALGORITHM on to pages 5 and 6 for the switches. Turn a knob right to flip a switch up, left to flip it down."},
-    {"Tempo", M_SEQ | M_ALGO, "Tap SEQ in time to set the tempo, or use KNOB 4 (TEMPO) on page 2. Send MIDI clock and the FM-1 follows."},
+    {"Twist", M_KNOBS | M_SEQ | M_SMALL, "Turn KNOB 1 to 4 while it plays. Tap SEQ in time to set the tempo."},
+    {"More", M_ALGO, "Turn ALGORITHM for more knobs. The last pages are switches: turn right for up, left for down."},
 };
 static const mpage_t MP_PLAY[] = {
     {"Patterns", M_PRESETS, "Every project holds 16 patterns. Turn PRESETS to pick the one you're writing."},
-    {"Cue", M_KEYS, "Press a white key in PLAY to cue a pattern. It starts when the current one ends."},
-    {"Chain", M_KEYS | M_EDIT, "Press several keys to chain patterns in that order. Press EDIT to clear the chain."},
-    {"Accent", M_ENV, "Hold ENV to accent everything that plays."},
-    {"Length", M_ALGO | M_K3, "Turn ALGORITHM to page 4, then turn KNOB 3 (LENGTH) to set how many steps this pattern plays."},
+    {"Cue", M_KEYS, "Press a white key in PLAY to line up a pattern. It starts when this one ends."},
+    {"Chain", M_KEYS | M_EDIT, "Press more keys to chain them in order. Press EDIT to clear the chain."},
 };
 static const mpage_t MP_PROJ[] = {
-    {"Open", M_HOME | M_SELECT, "Hold HOME to open your projects. Turn SELECT to pick one, then press HOME to open it."},
-    {"Copy and clear", M_SEL | M_EDIT, "Hold SEL on a project to copy it into a free spot. Hold EDIT to start it over."},
-    {"Menu", M_GLO | M_HOME, "Press GLO and HOME together for the menu. Factory Reset starts over. Roll The Dice fills every pattern with random notes."},
-    {"Save", M_SAVE, "Press SAVE to save. Stop touching it for two seconds and it saves by itself."},
+    {"Open", M_HOME | M_SELECT, "Hold HOME for your projects. Turn SELECT, then press HOME."},
+    {"Copy", M_SEL | M_EDIT, "Hold SEL on a project to copy it. Hold EDIT to wipe it."},
+    {"Menu", M_GLO | M_HOME, "Press GLO and HOME together. Careful in there."},
 };
-static const mpage_t MP_FX[] = {                        /* the first page is for no effect, then one for each in the order ALGORITHM walks them: GLO shows the one that is on */
-    {"Effect", M_FX | M_ALGO | M_SMALL, "Press FX to open the effect and again to leave it. Turn ALGORITHM to put one on. Press HOME to go back."},
-    {"Robot on pills", M_KNOBS | M_SMALL, "TIME sets the gap between echoes. FEEDBK sets how many echoes follow. MIX sets how loud they are. TONE sets how dull they get."},
-    {"Tapes of wrath", M_KNOBS | M_SMALL, "TIME sets the gap between echoes. FEEDBK sets how many echoes follow. MIX sets how loud they are. WOW sets how loose the tape runs."},
-    {"Take the dub", M_KNOBS | M_SMALL, "TIME sets the gap, and bends the echoes as you turn it. FEEDBK sets how much comes back: past half it howls. CUTOFF filters every echo. LEVEL sets the volume. Inspired by Korg's monotron Delay."},
-    {"Bitcrush", M_KNOBS | M_SMALL, "BITS sets how few bits are left. RATE sets how slowly the sound is sampled. MIX blends it with the clean bass. LEVEL sets the volume."},
-    {"Dead Radio", M_KNOBS | M_SMALL, "BAND squeezes the sound into a narrow band. BITS sets how few bits are left. MIX blends it with the clean bass. LEVEL sets the volume."},
-    {"thats why i love...", M_KNOBS | M_SMALL, "DRIVE sets how hard the bass is pushed. TONE sets how dull it gets. MIX blends it with the clean bass. LEVEL sets the volume."},
-    {"Laundry Day", M_KNOBS | M_SMALL, "DRIVE sets how often the wave folds over itself. TONE sets how dull it gets. MIX blends it with the clean bass. LEVEL sets the volume."},
+static const mpage_t MP_FX[] = {
+    {"Add one", M_FX | M_ALGO | M_SMALL, "Press FX. Turn ALGORITHM to pick an effect. Press HOME to leave."},
+    {"Add two", M_SELECT | M_ALGO | M_SMALL, "Turn SELECT to add a second effect, after the first."},
 };
 #define MC(n, c, p) {n, c, p, sizeof p / sizeof p[0]}
 static const mchap_t MCH[] = {
@@ -95,6 +77,7 @@ static void man_panel(uint32_t ring)
         if (ring >> (i + 8u) & 1u) man_ring(MPX(MBT[i][0]) - MZ(MBT[i][2] / 10 + 4), MPY(MBT[i][1]) - MZ(8), MPX(MBT[i][0]) + MZ(MBT[i][2] / 10 + 4), MPY(MBT[i][1]) + MZ(9));
     if (ring & M_KEYS) man_ring(MPX(60), MPY(424) + MZ(1), MPX(1040), MPY(424) + MZ(14));
 }
+static uint16_t man_ink = C_W;                                  /* the colour of the words (black on the yellow paper) */
 static int32_t man_lines(int32_t x, int32_t y, const char *s, int32_t maxw)       /* wrapped on spaces, 17 px a line; returns the next y */
 {
     const char *ls = s, *le = s, *p = s;
@@ -111,12 +94,12 @@ static int32_t man_lines(int32_t x, int32_t y, const char *s, int32_t maxw)     
         memcpy(t, ls, n); t[n] = 0;
         if (le != ls && text_w(&FONT_S, t) > maxw) {
             n = (uint32_t)(le - ls); memcpy(t, ls, n); t[n] = 0;
-            text_at(x, y, t, C_W); y += 17;
+            text_at(x, y, t, man_ink); y += 17;
             ls = p;
         }
         le = we; p = we;
     }
-    if (le != ls) { uint32_t n = (uint32_t)(le - ls); memcpy(t, ls, n); t[n] = 0; text_at(x, y, t, C_W); y += 17; }
+    if (le != ls) { uint32_t n = (uint32_t)(le - ls); memcpy(t, ls, n); t[n] = 0; text_at(x, y, t, man_ink); y += 17; }
     return y;
 }
 static void man_num(char *d, uint32_t a, uint32_t b)         /* "a/b", both under 100 */
@@ -127,52 +110,77 @@ static void man_num(char *d, uint32_t a, uint32_t b)         /* "a/b", both unde
     if (b >= 10u) d[n++] = (char)('0' + b / 10u);
     d[n++] = (char)('0' + b % 10u); d[n] = 0;
 }
+static void man_paper(uint32_t seed)                    /* yellow paper, a photocopy: specks and a streak */
+{
+    uint32_t i, q;
+    cv_rect(0, 0, 240, 240, C_Y);
+    cv_rect(228, 0, 2, 240, RGB(200, 180, 0));
+    for (i = 0; i < 60u; i++) {
+        q = (i + seed * 31u) * 2246822519u; q ^= q >> 15; q *= 3266489917u; q ^= q >> 13;
+        cv_rect((int32_t)(q % 240u), 28 + (int32_t)(q >> 8) % 212, (q >> 20 & 3u) == 0u ? 2 : 1, 1, C_K);
+    }
+}
+static void man_title(int32_t x, const char *s, uint16_t col)   /* wobbly letters, the pink one printed a little off */
+{
+    char t[2] = {0, 0};
+    uint32_t i;
+    int32_t cx = x;
+    for (i = 0; s[i]; i++) {
+        int32_t dy = ((int32_t)((i * 7u + fm1_ms / 400u) % 3u)) - 1;
+        t[0] = s[i];
+        text_at(cx + 1, 5 + dy, t, C_PINK);
+        text_at(cx, 4 + dy, t, col);
+        cx += text_w(&FONT_S, t);
+    }
+}
 static void scene_man(void)
 {
     uint32_t i;
     char nb[8];
     const mchap_t *c = &MCH[man_ch];
     const mpage_t *p = &c->page[man_pg];
-    cv_rect(0, 0, 240, 240, C_K);
+    man_paper(man_toc ? 99u : man_ch * 16u + man_pg);
+    man_ink = C_K;
+    cv_rect(0, 0, 240, 26, C_K);
+    wave_band(24, 2, C_PINK, fm1_ms / 200u);
     if (man_toc) {
-        man_num(nb, man_ch + 1u, (uint32_t)MCHN);
-        cv_rect(0, 0, 240, 26, C_Y);
-        text_at(8, 4, "Manual", C_K);
+        man_title(8, "Manual", C_Y);
         for (i = 0; i < MCHN; i++) {
             int32_t y = 30 + (int32_t)i * 22;
             char cn[4];
-            if (i == man_ch) cv_rect(0, y, 240, 21, RGB(40, 36, 0));
+            if (i == man_ch) cv_rect(0, y, 228, 21, C_K);
             cv_rect(8, y + 3, 5, 15, MCH[i].col);
-            text_at(22, y + 2, MCH[i].name, i == man_ch ? C_Y : C_W);
+            text_at(22, y + 2, MCH[i].name, i == man_ch ? C_Y : C_K);
             cn[0] = (char)('0' + MCH[i].n / 10u); cn[1] = (char)('0' + MCH[i].n % 10u); cn[2] = 0;
-            text_at(214, y + 2, MCH[i].n >= 10u ? cn : cn + 1, C_RING);
+            text_at(210, y + 2, MCH[i].n >= 10u ? cn : cn + 1, i == man_ch ? C_Y : C_K);
         }
-        cv_rect(8, 215, 224, 1, C_RING);
-        text_at(8, 220, "OCT+  Open", C_Y);
-        text_at(232 - text_w(&FONT_S, "HOME  Close"), 220, "HOME  Close", C_Y);
+        cv_rect(8, 215, 212, 2, C_K);
+        text_at(8, 220, "OCT+  Open", C_K);
+        text_at(220 - text_w(&FONT_S, "HOME  Close"), 220, "HOME  Close", C_K);
+        man_ink = C_W;
         return;
     }
     man_num(nb, man_pg + 1u, c->n);
-    cv_rect(0, 0, 240, 26, c->col);
-    text_at(8, 4, c->name, C_K);
-    text_at(232 - text_w(&FONT_S, nb), 4, nb, C_K);
-    if (p->ring & M_NOPANEL) man_lines(8, 70, p->text, 224);
+    man_title(8, c->name, c->col);
+    text_at(232 - text_w(&FONT_S, nb), 4, nb, c->col);
+    if (p->ring & M_NOPANEL) man_lines(8, 70, p->text, 216);
     else {
         int32_t ty = 142, small = (p->ring & M_SMALL) != 0;
         man_k = small ? 7 : 13; man_x0 = small ? 64 : 16; man_y0 = 34;
         man_panel(p->ring);
-        if (small) { ty = 88; if (p->topic[0]) { text_at(8, 84, p->topic, C_PINK); ty = 104; } }
-        else if (p->topic[0]) text_at(8, 120, p->topic, C_PINK);
+        if (small) { ty = 88; if (p->topic[0]) { text_at(9, 85, p->topic, C_PINK); text_at(8, 84, p->topic, C_K); ty = 104; } }
+        else if (p->topic[0]) { text_at(9, 121, p->topic, C_PINK); text_at(8, 120, p->topic, C_K); }
         else ty = 120;
-        man_lines(8, ty, p->text, 224);
+        man_lines(8, ty, p->text, 216);
         man_k = 13; man_x0 = 16;
     }
-    {   int32_t d0 = man_lock ? 120 - (int32_t)c->n * 5 : 224 - (int32_t)c->n * 10;          /* the dots: centred, or at the right with GLO Menu at the left */
-        for (i = 0; i < c->n; i++) cv_rect(d0 + (int32_t)i * 10, 226, 6, 4, i <= man_pg ? c->col : RGB(58, 58, 74));
-        if (!man_lock) text_at(8, 218, "GLO Menu", RGB(138, 138, 154));
-        if (man_pg > 0u || (!man_lock && man_ch > 0u)) text_at(man_lock ? 4 : d0 - 14, 216, "<", RGB(138, 138, 154));
-        if (man_pg + 1u < c->n || (!man_lock && man_ch + 1u < MCHN)) text_at(228, 216, ">", RGB(138, 138, 154));
+    {   int32_t d0 = man_lock ? 120 - (int32_t)c->n * 5 : 220 - (int32_t)c->n * 10;          /* the dots: centred, or at the right with GLO Menu at the left */
+        for (i = 0; i < c->n; i++) cv_rect(d0 + (int32_t)i * 10, 226, 6, 4, i <= man_pg ? C_K : RGB(200, 180, 0));
+        if (!man_lock) text_at(8, 218, "GLO Menu", C_K);
+        if (man_pg > 0u || (!man_lock && man_ch > 0u)) text_at(man_lock ? 4 : d0 - 14, 216, "<", C_K);
+        if (man_pg + 1u < c->n || (!man_lock && man_ch + 1u < MCHN)) text_at(218, 216, ">", C_K);
     }
+    man_ink = C_W;
 }
 static void man_open(uint32_t ch, uint32_t pg) { man_ch = ch; man_pg = pg; man_toc = 0; man_lock = 0; man_on = 1; }
 static void man_input(uint32_t btn)                      /* SELECT turns pages (on into the next chapter), PRESETS jumps chapters, OCT+ opens a chapter from the contents */

@@ -1,0 +1,17 @@
+# the little wonders: a knob finds something, the moo, Pierre 1985
+100 midi 176 102 127
+7300 midi 176 102 0
+7350 midi 176 125 1
+7750 shot
+7800 midi 176 125 2
+8250 shot
+8300 midi 176 125 3
+8750 shot
+8900 midi 176 124 1
+9300 shot
+9900 midi 176 126 1
+10000 midi 176 102 127
+10600 shot
+10700 midi 176 126 0
+10900 end
+

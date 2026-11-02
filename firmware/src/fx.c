@@ -4,14 +4,15 @@
  * Runs in the audio interrupt; integers only. Included by smileyface.c after voice.c. */
 enum { FX_NONE, FX_DELAY, FX_DRIVE, FX_CRUSH, FX_KINDS };
 enum { DL_DIGITAL, DL_TAPE, DL_DUB };                   /* the types of each kind (a unit's `sub`) */
-enum { DR_OD, DR_FOLD };
+enum { DR_OD, DR_FOLD, DR_CRUNCH, DR_FUZZ };            /* (the order is what projects saved, so new ones go on the end) */
 enum { CR_BITS, CR_LOFI };
 #define FXN 4u
+#define FXU 2u                                         /* the slots in use: two, one after the other (the data has four) */
 #define FX_VER 3u                                       /* a rack saved with other kinds is emptied */
 typedef struct { uint8_t type, in, bus, sub; uint8_t p[8]; } fxu_t;        /* in: 0 the bass, n the unit in slot n - 1 (an earlier one); bus: 1 = it goes to the output */
 typedef struct { uint8_t on, ver, pad[2]; fxu_t u[FXN]; } fxr_t;           /* 52 bytes */
 static fxr_t rack;
-static const uint8_t FX_SUBS[FX_KINDS] = {1, 3, 2, 2};
+static const uint8_t FX_SUBS[FX_KINDS] = {1, 3, 4, 2};
 
 #define DL_N 24576u                                     /* the delay line: 1.1 s at 22.05 kHz */
 static int16_t dl_buf[FXN][DL_N] __attribute__((section(".pool")));
@@ -21,10 +22,10 @@ static int32_t fx_odc;                                  /* the rack's DC blocker
 static volatile uint32_t fx_rst;                        /* slots whose audio state the main loop wants cleared */
 
 static const char *const FX_NAME[FX_KINDS] = {"", "DELAY", "DRIVE", "CRUSH"};
-static const uint8_t FX_DEF[FX_KINDS][3][8] = {         /* each type's starting knobs */
+static const uint8_t FX_DEF[FX_KINDS][4][8] = {         /* each type's starting knobs */
     {{0}},
     {{12, 10, 22, 24}, {12, 12, 14, 8}, {12, 10, 22, 24}},     /* digital: TIME FEEDBK MIX TONE; tape: TIME FEEDBK MIX WOW; dub: TIME FEEDBK CUTOFF LEVEL */
-    {{12, 20, 31, 22}, {7, 24, 31, 22}},                       /* DRIVE TONE MIX LEVEL */
+    {{12, 20, 31, 22}, {7, 24, 31, 22}, {14, 18, 31, 20}, {18, 14, 31, 18}},      /* DRIVE TONE MIX LEVEL */
     {{22, 12, 31, 24}, {10, 20, 31, 24}},                      /* bits: BITS RATE MIX LEVEL; lofi: BAND BITS MIX LEVEL */
 };
 static const uint8_t FX_DIV[8] = {1, 2, 3, 4, 6, 8, 12, 16};   /* the digital delay's TIME, in half steps: 1/32 1/16 dotted 1/16 1/8 ... 1/2 */
@@ -107,6 +108,16 @@ static int32_t fx_echo(fxs_t *s, int16_t *buf, int32_t x, int32_t tgt, int32_t f
 static int32_t fx_shape(uint32_t sub, int32_t v)
 {
     if (sub == DR_OD) return soft(v) * 5 / 6;
+    if (sub == DR_CRUNCH) {                                     /* hard clipping, the top a little lower than the bottom */
+        int32_t t = v > 0 ? 21000 : 25000;
+        if (v > t) v = t;
+        if (v < -t) v = -t;
+        return v;
+    }
+    if (sub == DR_FUZZ) {                                       /* a square-ish wave with the octave up folded in: a rectified copy, and a gate that sputters at low levels */
+        int32_t t = v > 0 ? 17000 : 12000, c = v > t ? t : v < -t ? -t : v, a = c < 0 ? -c : c;
+        return c * 3 / 4 + a / 3 - (a < 1500 ? c / 2 : 0);
+    }
     {
         uint32_t m = (uint32_t)(v + 32768) & 131071u;
         return (m < 65536u ? (int32_t)m - 32768 : 98304 - (int32_t)m) * 5 / 8;
@@ -207,7 +218,7 @@ static void fx_clear_line(uint32_t k) { memset(dl_buf[k], 0, sizeof dl_buf[k]); 
 static void fx_defaults(fxu_t *u, uint32_t type, uint32_t sub)
 {
     uint32_t j;
-    for (j = 0; j < 8u; j++) u->p[j] = FX_DEF[type % FX_KINDS][sub % 3u][j];
+    for (j = 0; j < 8u; j++) u->p[j] = FX_DEF[type % FX_KINDS][sub % 4u][j];
     u->sub = (uint8_t)sub;
 }
 static void fx_chain(fxr_t *r)                                  /* a plain list: each unit hears the one before it, the last one is heard */
@@ -232,7 +243,7 @@ static void fx_set(uint32_t k, uint32_t type, uint32_t sub)    /* put a unit (or
     u->type = (uint8_t)type;
     fx_chain(&rack);
 }
-static uint8_t fx_keep[FXN][FX_KINDS][3][8], fx_kept[FXN][FX_KINDS][3];      /* knobs of units turned out, so turning back finds them */
+static uint8_t fx_keep[FXN][FX_KINDS][4][8], fx_kept[FXN][FX_KINDS][4];      /* knobs of units turned out, so turning back finds them */
 static void fx_stash(uint32_t k)
 {
     const fxu_t *u = &rack.u[k];
@@ -258,12 +269,13 @@ static void fx_morph(uint32_t k, uint32_t type, uint32_t sub) /* another unit in
     u->type = (uint8_t)type;
 }
 static void fx_unplug(uint32_t k) { fx_set(k, FX_NONE, 0); }                           /* empty a slot; the list closes up */
-static const uint8_t FXL_K[8] = {FX_NONE, FX_DELAY, FX_DELAY, FX_DELAY, FX_CRUSH, FX_CRUSH, FX_DRIVE, FX_DRIVE};      /* ALGORITHM walks them all in a row */
-static const uint8_t FXL_S[8] = {0, DL_DIGITAL, DL_TAPE, DL_DUB, CR_BITS, CR_LOFI, DR_OD, DR_FOLD};
+#define FXL_N 10u                                               /* the effects ALGORITHM walks, none first */
+static const uint8_t FXL_K[FXL_N] = {FX_NONE, FX_DELAY, FX_DELAY, FX_DELAY, FX_CRUSH, FX_CRUSH, FX_DRIVE, FX_DRIVE, FX_DRIVE, FX_DRIVE};      /* ALGORITHM walks them all in a row */
+static const uint8_t FXL_S[FXL_N] = {0, DL_DIGITAL, DL_TAPE, DL_DUB, CR_BITS, CR_LOFI, DR_OD, DR_CRUNCH, DR_FUZZ, DR_FOLD};
 static uint32_t fx_pos(uint32_t k)                              /* where the unit in a slot is in that row */
 {
     uint32_t i;
-    for (i = 0; i < 8u; i++) if (FXL_K[i] == rack.u[k].type && (i == 0u || FXL_S[i] == rack.u[k].sub)) return i;
+    for (i = 0; i < FXL_N; i++) if (FXL_K[i] == rack.u[k].type && (i == 0u || FXL_S[i] == rack.u[k].sub)) return i;
     return 0;
 }
 static void fx_pick(uint32_t k, uint32_t i)                     /* put the i-th of the row in a slot (0 takes it out); its knobs come back if it was there before */
@@ -281,7 +293,7 @@ static void fx_sanitize(fxr_t *r)
     r->on = r->on ? 1u : 0u;
     for (k = 0; k < FXN; k++) {
         fxu_t *u = &r->u[k];
-        if (r->ver != FX_VER || k) memset(u, 0, sizeof *u);      /* one effect or none, for now */          /* an older rack: other kinds, emptied */
+        if (r->ver != FX_VER || k >= FXU) memset(u, 0, sizeof *u);      /* an older rack: other kinds, emptied; slots past two stay empty */
         if (u->type >= FX_KINDS) u->type = FX_NONE;
         if (u->sub >= FX_SUBS[u->type]) u->sub = 0;
         for (j = 0; j < 8u; j++) if (u->p[j] > 31u) u->p[j] = 31u;
@@ -299,5 +311,6 @@ static void fx_load(const fxr_t *r)                             /* a project's r
     rack.on = 0;
     fx_sanitize(&rack);
     fx_rst = (1u << FXN) - 1u;
-    rack.on = rack.u[0].type != FX_NONE ? 1u : 0u;
+    rack.on = rack.u[0].type != FX_NONE || rack.u[1].type != FX_NONE ? 1u : 0u;
 }
+static uint32_t fx_any(void) { return rack.u[0].type != FX_NONE || rack.u[1].type != FX_NONE; }

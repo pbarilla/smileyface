@@ -1,0 +1,8 @@
+# the glitch must never stay on the screen: turn a knob during a glitch, and a second later the knobs and tabs must look as they did before it
+400 enc 2 1
+600 shot
+700 midi 176 112 20
+750 enc 2 -1
+800 enc 2 1
+2000 shot
+2100 end

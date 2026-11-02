@@ -24,6 +24,10 @@ static step_t pats[PATS][STEPS];
 static uint8_t plen[PATS];                          /* each pattern's length, 1..16 */
 static volatile uint32_t pat_idx;                   /* the pattern playing (and being written) */
 static knobs_t kn = {14, 20, 18, 12, 16, 14, 4, 0, 4, 12, 2, 0, 16, 0, 12, 31, 0, 0, 0, 0};
+#ifndef REL_RATE
+#define REL_RATE 2200                                    /* how fast the volume closes at the end of a note, per control tick, two poles: 4500 is about 3 ms, 2000 about 12 ms */
+#endif
+static volatile uint8_t vol_dec = 31;               /* VOL DEC: 0 shortest .. 15 three seconds, 16..31 the note settles lower and lower; 31 holds for the whole gate (how it always was) */
 static volatile uint32_t seq_run, seq_step = STEPS - 1u, seq_bpm = 126;
 /* patterns cued to play next, each when the one before ends (the main loop pushes, the audio pops) */
 #define CUEQ 8u
@@ -58,8 +62,8 @@ typedef struct {
     uint32_t ph, ph2, incT;                         /* oscillator phases, the step now */
     int32_t p, tp;                                  /* pitch now and wanted, in 1/256 semitones: the glide runs on this, as the 303's does (an RC on the pitch voltage) */                          /* oscillator phase, step now, step wanted (slide) */
     uint32_t gate, acc, tie, env_pos, note;
-    int32_t drv, xp, dcs, acc_cap, vca, s[4], G, G2, G3, G4, omG, R, k;   /* the ladder: states, gain powers and the loop's reciprocal, set at control rate */
-    uint32_t tick;
+    int32_t drv, xp, dcs, acc_cap, vca, s[4], G, G2, G3, G4, omG, R, k, bl, bl2, bl3, va, dc, ci, v1, vs, idxc, fmk, fmy, nd0, nd1, dr0, dr1, dg0, dg1;   /* the ladder: states, gain powers and the loop's reciprocal, set at control rate */
+    uint32_t tick, rs, nz;
 } voice_t;
 static voice_t vo;
 
@@ -77,7 +81,11 @@ static void gate_on(uint32_t note, uint32_t acc, uint32_t slide_in)
     vo.tp = (int32_t)(note < 127u ? note : 126u) << 8;
     vo.note = note;
     if (!slide_in || !vo.gate || !vo.p) vo.p = vo.tp;
-    if (!slide_in || !vo.gate) vo.env_pos = 0;      /* a slid note keeps going: no new envelope */
+    if (!slide_in || !vo.gate) {
+        vo.env_pos = 0; vo.va = 1 << 24;
+        vo.rs = vo.rs * 1664525u + 1013904223u; vo.nd0 = (int32_t)(vo.rs >> 16) - 32768;       /* DRIFT: this note is a little off, in pitch and in brightness */
+        vo.rs = vo.rs * 1664525u + 1013904223u; vo.nd1 = (int32_t)(vo.rs >> 16) - 32768;
+    } else vo.va = 1 << 24;                                  /* a slid note keeps its filter sweep, but its volume is plucked again: VOL DEC cannot make a slide vanish */      /* a slid note keeps going: no new envelope */
     vo.acc = acc;
     vo.acc_cap += acc ? (32767 - vo.acc_cap) / 3 : 0;
     vo.gate = 1;
@@ -117,10 +125,28 @@ static void seq_play(void)
 static void ext_seen_reset(void) { ext_seen = ext_in; ext_phase = 5; ext_age = 0; }
 static void seq_stop(void) { cue_clear(); seq_run = 0; sq_prev_sld = 0; vo.gate = 0; vo.tie = 0; }
 
+/* kn.wave: bit 0 square, bit 1 accents off, 2-3 BASS (0..2), 4-5 DRIFT (0..2), 6 DIODE, 7 two poles. Old banks have bits 0-1 only. */
+#define W_BASS ((uint32_t)kn.wave >> 2 & 3u)
+#define W_DRIFT ((uint32_t)kn.wave >> 4 & 3u)
+#define W_DIODE ((uint32_t)kn.wave >> 6 & 1u)
+#define W_TWO ((uint32_t)kn.wave >> 7 & 1u)
+static int32_t dsoft(int32_t o)                     /* a diode stage: lopsided soft clip (the lopsidedness is the grit), Q19 */
+{
+    return (soft(((o >> 4) * 6) + 6000) - soft(6000)) * 16 / 6;
+}
+
 static int32_t core_step(void)                                  /* one step of the oscillator and the ladder; x out (Q19) */
 {
-    int32_t s, x, fb;
-    uint32_t t, dt;
+    int32_t s, x, x2, fb;
+    uint32_t t, dt, dio = W_DIODE;
+    if (vo.fmk) {                                       /* FILT FM: what comes out of the amp shakes the cutoff, a sample at a time (the Devil Fish's knob). Little until well up, then wild. */
+        int32_t m = ((vo.fmy >> 6) * vo.fmk) >> 9, ii = vo.idxc * 16 + m, g, fr;          /* in sixteenths of a table step: it glides, it does not jump a whole step (that was a tick) */
+        if (ii < 0) ii = 0;
+        if (ii > 255 * 16) ii = 255 * 16;
+        fr = ii & 15; ii >>= 4;
+        g = CUT_G[ii] + (((int32_t)CUT_G[ii < 255 ? ii + 1 : 255] - (int32_t)CUT_G[ii]) * fr >> 4); vo.G = g;         vo.G2 = mulq(g, g); vo.G3 = mulq(vo.G2, g); vo.G4 = mulq(vo.G3, g); vo.omG = 32768 - g;
+        vo.R = (int32_t)((4096u << 15) / (uint32_t)(4096 + (vo.k * vo.G4 >> 15)));
+    }
     t = vo.ph >> 16; dt = vo.incT >> (16 + OSH);
     vo.ph += vo.incT >> OSH;
     vo.ph2 += vo.incT >> (OSH + 1);
@@ -133,18 +159,24 @@ static int32_t core_step(void)                                  /* one step of t
         s -= mulq(blep(t, dt), 22000);
         s = -s;
     }
+    vo.bl += mulq(s - vo.bl, 330); vo.bl2 += mulq(vo.bl - vo.bl2, 330); vo.bl3 += mulq(vo.bl2 - vo.bl3, 330);      /* BASS: the oscillator's own low end (three poles, 140 Hz) under the filter, so a high resonance cannot thin it out */
     if (kn.sub) s += (vo.ph2 < 0x80000000u ? 9000 : -9000) * (int32_t)kn.sub / 31;       /* SUB: a square an octave down */
     {
         int32_t S, u, o;
         S = mulq(mulq(vo.s[0], vo.G3) + mulq(vo.s[1], vo.G2) + mulq(vo.s[2], vo.G) + vo.s[3], vo.omG);
         fb = (S >> 4) * vo.k >> 12;
-        u = soft(mulq(s * (4 + vo.drv) / 6 - fb, vo.R)) * 16;          /* DRV: the oscillator pushed into the ladder */
+        if (vo.drv < 3) { vo.nz = vo.nz * 1664525u + 1013904223u; fb -= (int32_t)(vo.nz >> 27) - 16; }       /* (a whisper, so the filter can start ringing on its own when the oscillator is turned down) */
+        u = soft(mulq((s * (int32_t)(dio ? DRV_G[vo.drv & 31] * 5u / 2u : DRV_G[vo.drv & 31]) >> 8) - fb, vo.R)) * 16;          /* DRV: the oscillator pushed into the ladder: silent to 40x */
         o = mulq(u, vo.G) + mulq(vo.s[0], vo.omG); vo.s[0] = 2 * o - vo.s[0];
-        u = o; o = mulq(u, vo.G) + mulq(vo.s[1], vo.omG); vo.s[1] = 2 * o - vo.s[1];
-        u = o; o = mulq(u, vo.G) + mulq(vo.s[2], vo.omG); vo.s[2] = 2 * o - vo.s[2];
+        u = dio ? dsoft(o) : o; o = mulq(u, vo.G) + mulq(vo.s[1], vo.omG); vo.s[1] = 2 * o - vo.s[1];
+        x2 = o;
+        u = dio ? dsoft(o) : o; o = mulq(u, vo.G) + mulq(vo.s[2], vo.omG); vo.s[2] = 2 * o - vo.s[2];
         x = o;
-        u = o; o = mulq(u, vo.G) + mulq(vo.s[3], vo.omG); vo.s[3] = 2 * o - vo.s[3];
+        u = dio ? dsoft(o) : o; o = mulq(u, vo.G) + mulq(vo.s[3], vo.omG); vo.s[3] = 2 * o - vo.s[3];
         x = (x * (31 - (int32_t)kn.pol) + o * (int32_t)kn.pol) / 31;               /* POL: three poles to four */
+        if (W_TWO) x = x2;                                                          /* two poles: the tap after the second stage */
+        if (W_BASS) { int32_t lo = vo.bl3 * 16; x += mulq(lo, 32768); if (W_BASS == 2u) x += mulq(lo, 32768); }       /* BASS: the oscillator's low end, once (1) or twice (2) */
+        if (dio) x = dsoft(x) * 2;                                                   /* DIODE: and the last stage's output is saturated too, whichever tap it is (and made up, it squashes) */
     }
     return x;
 }
@@ -188,28 +220,46 @@ static void voice_render(int32_t *out, uint32_t n)
         }
         if ((vo.tick++ & 7u) == 0u) {                       /* control rate: 5.5 kHz */
             const uint32_t accx = vo.acc || fx_acc;
-            int32_t tg = vo.gate ? (accx ? 32767 : 24000) : 0, e, idx, amt, pp;
+            const uint32_t swp_on = kn.hir != 15u;                     /* ACC SWP at 0: no accent sweep */
+            int32_t tg = vo.gate ? (accx && swp_on ? 32767 : 24000) : 0, e, idx, amt, pp;
             uint32_t ep;
             vo.p += mulq(vo.tp - vo.p, GLIDE_G[kn.sld]);
-            pp = vo.p < 0 ? 0 : vo.p > 126 * 256 ? 126 * 256 : vo.p;
+            if ((++vo.dc & 4095) == 0) {                       /* DRIFT: two slow wanderers, one for the pitch and one for the cutoff */
+                vo.rs = vo.rs * 1664525u + 1013904223u; vo.dg0 = (int32_t)(vo.rs >> 16) - 32768;
+                vo.rs = vo.rs * 1664525u + 1013904223u; vo.dg1 = (int32_t)(vo.rs >> 16) - 32768;
+            }
+            vo.dr0 += (vo.dg0 - vo.dr0) >> 11; vo.dr1 += (vo.dg1 - vo.dr1) >> 11;
+            pp = vo.p + (W_DRIFT ? mulq(vo.dr0 + vo.nd0, W_DRIFT == 1u ? 72 : 170) : 0);
+            pp = pp < 0 ? 0 : pp > 126 * 256 ? 126 * 256 : pp;
             {
                 uint32_t n = (uint32_t)pp >> 8, a = NOTE_INC[n], b = NOTE_INC[n + 1u];
                 vo.incT = (uint32_t)mulq((int32_t)(a + (((b - a) >> 8) * ((uint32_t)pp & 255u))), TUNE_R[kn.tun]);          /* TUN: a little either way */
             }
-            vo.vca += mulq(tg - vo.vca, vo.gate ? 12000 - (int32_t)kn.atk * 370 : 2500);        /* ATK: a soft attack */
+            if (vol_dec < 31u) {                                    /* VOL DEC: the volume falls, to nothing or to a floor */
+                int32_t fl = vol_dec < 16u ? 0 : (int32_t)(vol_dec - 15u) << 20;
+                vo.va += mulq(fl - vo.va, VD_G[vol_dec < 15u ? vol_dec : 15u]);
+                tg = (tg * (vo.va >> 9)) >> 15;
+            } else vo.va = 1 << 24;
+            { int32_t vr = vo.gate ? 9000 - (accx ? 0 : (int32_t)kn.atk * 250) : REL_RATE;          /* two poles one after the other: the volume starts and ends with no corner, so no tick */
+              vo.v1 += mulq(tg - vo.v1, vr); vo.vca += mulq(vo.v1 - vo.vca, vr); }        /* ATK: a soft attack (1 to 16 ms), on the notes without an accent */
             ep = vo.env_pos >> 16;
             e = ENV_T[ep < 767u ? ep : 767u];
             env_vis = vo.gate ? e : env_vis - (env_vis >> 3);
             vo.env_pos += DEC_STEP[accx ? kn.adc : kn.dec];            /* accent has its own decay (ADC) */
             vo.acc_cap -= vo.acc_cap >> (12 - (int32_t)kn.swp / 6);        /* SWP: how long the accents pile up */
             amt = ENV_AMT[kn.env];
-            if (accx) amt += mulq(amt + 30, 8192 + (vo.acc_cap >> 1) + (int32_t)kn.acc * 1000);
+            if (accx && swp_on) amt += mulq(amt + 30, 8192 + (vo.acc_cap >> 1) + (int32_t)kn.acc * 1000);
             idx = (int32_t)kn.cut * 7 + mulq(e, amt) + ((int32_t)vo.note - 45) * (int32_t)kn.trk * 24 / 310;     /* TRK: the cutoff follows the note */
+            if (W_DRIFT) idx += mulq(vo.dr1 + vo.nd1, W_DRIFT == 1u ? 24 : 64);
             if (idx > 255) idx = 255;
             if (idx < 0) idx = 0;
+            vo.ci += ((idx << 8) - vo.ci) / 3;                       /* the cutoff does not jump when a note starts: about half a millisecond to get there (no tick) */
+            idx = vo.ci >> 8;
+            vo.idxc = idx; vo.fmk = (int32_t)kn.fm * (int32_t)kn.fm;
             k = RES_K[kn.res];
+            if (W_DIODE) k -= k >> 2;                              /* a diode ladder sings a little less */
             vo.drv = kn.drv;
-            k += (k * (int32_t)kn.hir) >> 9;                        /* HIR: past the edge of singing */
+            if (kn.hir) k *= 2;                                     /* HI RES: twice the feedback, so it rings by itself */
             vo.G = CUT_G[idx];
             vo.G2 = mulq(vo.G, vo.G); vo.G3 = mulq(vo.G2, vo.G); vo.G4 = mulq(vo.G3, vo.G);
             vo.omG = 32768 - vo.G;
@@ -221,12 +271,14 @@ static void voice_render(int32_t *out, uint32_t n)
             x = OS == 2 ? (vo.xp + 2 * xa + xb) >> 2 : xa;      /* [1 2 1] down to 44.1 kHz */
             vo.xp = xb;
         }
-        s = mulq(x >> 4, vo.vca);
+        vo.vs += (vo.vca - vo.vs) >> 3;                         /* (and between control ticks the gain glides, it does not step) */
+        s = mulq(x >> 4, vo.vs);
         s = s * (4096 + (vo.k >> 2)) >> 12;                 /* a quarter of what the resonance takes from the bass comes back */
         s = soft(s * (6 + (int32_t)kn.muf * 2) / 4) * 7 / 8;          /* MUF: soft clip after the VCA */
         vo.dcs += (s * 16 - vo.dcs) >> 9;                       /* a DC blocker: the clipping is lopsided on a resonant saw */
-        s -= vo.dcs >> 4;
+        s -= mulq(vo.dcs >> 4, vo.vs * 4 > 32768 ? 32768 : vo.vs * 4);          /* (the DC it takes off fades with the volume: it used to stay, and when a note ended it was left on its own, a small step and a bump: the tick) */
         s = s * (24 + (int32_t)kn.lvl) / 24;                    /* LEVEL */
+        vo.fmy = s;
         if (s > 32000) s = 32000;
         if (s < -32000) s = -32000;
         out[2u * i] += s;

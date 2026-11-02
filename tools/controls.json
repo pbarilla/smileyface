@@ -131,8 +131,8 @@
   {
    "id": "FX",
    "name": "FX",
-   "STEPS": "FX: one effect",
-   "PLAY": "FX: one effect"
+   "STEPS": "FX: two effects",
+   "PLAY": "FX: two effects"
   },
   {
    "id": "REC",
@@ -176,7 +176,7 @@
   ],
   [
    "DRIVE",
-   "the oscillator pushed into the filter"
+   "the oscillator pushed into the filter: all the way down, it goes silent"
   ],
   [
    "ACC DEC",
@@ -195,8 +195,8 @@
    "the oscillator shakes the filter"
   ],
   [
-   "SWING",
-   "swings the odd steps late"
+   "VOL DEC",
+   "how long each note lasts: all the way up, it holds"
   ],
   [
    "LENGTH",
@@ -212,7 +212,7 @@
   ],
   [
    "SUB OSC",
-   "a square an octave down (a switch)"
+   "a square an octave down: off, low, mid, high (a switch)"
   ],
   [
    "MUFFLE",
@@ -223,16 +223,32 @@
    "slow, norm, fast (a switch)"
   ],
   [
-   "HI RES",
-   "resonance past the edge (a switch)"
+   "ACC SWP",
+   "the Devil Fish switch: sweep, sweep + hi res, no sweep + hi res (a switch)"
+  ],
+  [
+   "SWING",
+   "swings the odd steps late"
   ],
   [
    "POLES",
-   "3 or 4 (a switch)"
+   "2, 3 or 4 (a switch)"
   ],
   [
    "ACCENT",
    "accents on or off (a switch)"
+  ],
+  [
+   "BASS",
+   "keeps the low end when it sings (a switch)"
+  ],
+  [
+   "DRIFT",
+   "a slow wander, like old gear (a switch)"
+  ],
+  [
+   "DIODE",
+   "a grittier, softer filter (a switch)"
   ],
   [
    "",

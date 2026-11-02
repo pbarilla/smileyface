@@ -1,0 +1,23 @@
+# page 4 (VOL DEC), page 5 (SUB OSC has four places), page 6 (ACC SWP three-way, SWING, POLES, ACCENT), page 7 (BASS DRIFT DIODE)
+200 enc 1 1
+210 enc 1 1
+220 enc 1 1
+300 enc 3 -1
+310 enc 3 -1
+400 shot
+410 enc 1 1
+420 enc 3 1
+430 enc 3 1
+440 enc 3 1
+500 shot
+510 enc 1 1
+520 enc 2 -1
+530 enc 4 -1
+600 shot
+610 enc 1 1
+700 enc 2 1
+710 enc 2 1
+720 enc 3 1
+730 enc 4 1
+800 shot
+900 end
