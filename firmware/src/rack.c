@@ -3,11 +3,11 @@
  * and its knobs. A unit has its own colour all over the screen, so you know whose knobs you are holding. Included by smileyface.c after views.c. */
 static uint32_t fx_on, fx_sel;                                   /* the FX view is open; the slot (0 or 1) whose knobs you hold */
 static const uint16_t FX_COL[FX_KINDS] = {C_PINK, C_CY, C_OR, C_LIME};
-static const char *const FXT_NAME[FX_KINDS][4] = {{""}, {"Robot on pills", "Tapes of wrath", "Take the dub"}, {"thats why i love...", "Laundry Day", "Crunch", "Fuzz"}, {"Bitcrush (hey,|not everything is a pun)", "Dead Radio", ""}};      /* what each is called */
+static const char *const FXT_NAME[FX_KINDS][4] = {{""}, {"Robot on pills", "Tapes of wrath", "Take the dub"}, {"Laundry Day"}, {"Bitcrush (hey,|not everything is a pun)", "Dead Radio", ""}};      /* what each is called */
 static const char *const FXK_NAME[FX_KINDS][4][4] = {
     {{"", "", "", ""}},
     {{"TIME", "FEEDBK", "MIX", "TONE"}, {"TIME", "FEEDBK", "MIX", "WOW"}, {"TIME", "FEEDBK", "CUTOFF", "LEVEL"}},
-    {{"DRIVE", "TONE", "MIX", "LEVEL"}, {"DRIVE", "TONE", "MIX", "LEVEL"}, {"DRIVE", "TONE", "MIX", "LEVEL"}, {"DRIVE", "TONE", "MIX", "LEVEL"}},
+    {{"DRIVE", "TONE", "MIX", "LEVEL"}},
     {{"BITS", "RATE", "MIX", "LEVEL"}, {"BAND", "BITS", "MIX", "LEVEL"}, {"", "", "", ""}},
 };
 
@@ -103,18 +103,18 @@ static void fx_picture(const fxu_t *u)                          /* what the unit
             if (o < bh / 2 - 46) o = bh / 2 - 46;
             fx_rect(x, 100 - o - bh / 2, bw - 1 > 0 ? bw - 1 : 1, bh, col);
         }
-    } else if (u->type == FX_CRUSH) {                           /* the band that is left: BAND squeezes it, BITS makes the bars blocky, MIX blends it with the clean, LEVEL scales it */
-        int32_t hp = p0 * 14 / 31, lp = 28 - p0 * 12 / 31, qs = 3 + p1 * p1 * 36 / 961, lv = p3 * 100 / 24;
-        for (i = 0; i < 16; i++) {
-            int32_t b = i * 2, h = 100;
-            if (b < hp) h = 4 + 96 * b / (hp ? hp : 1); else if (b > lp) h = 100 - (b - lp) * 14;
-            if (h < 4) h = 4;
-            h = 100 + (h - 100) * p2 / 31;
-            h = h * lv / 100;
-            if (h > 97) h = 97;
-            fx_bar(4 + i * 29 / 2, 150, h / qs * qs + 3, 12, col, hi);
-            if (cv_vis(155, 170)) mini(4 + i * 29 / 2 + 6, 162, 1u);
+    } else if (u->type == FX_CRUSH) {                           /* a radio dial: the needle is BAND (and the lit window squeezes as it climbs), BITS is the static, MIX how much of it is on the clean, LEVEL the needle's height */
+        int32_t nx = 16 + p0 * 208 / 31 + sina(fm1_ms / 70u) * 3 / 127, ww = 100 - p0 * 2, nh = 20 + p3 * 70 / 31, dens = p1 * p2 / 8, j;
+        uint32_t hs = fm1_ms / 50u;
+        for (x = 6; x < 236; x += 7) fx_rect(x, 138, 2, (x - 6) / 7 % 5 == 0 ? 14 : 7, C_W);      /* the scale */
+        fx_rect(4, 152, 232, 3, col);
+        for (x = nx - ww / 2; x < nx + ww / 2; x += 4) { int32_t d = x > nx ? x - nx : nx - x; fx_rect(x, 138 - (ww / 2 - d) * nh / 100 / 2 * (p2 + 8) / 39, 3, 3 + (ww / 2 - d) * nh / 100 / 2 * (p2 + 8) / 39, col); }
+        for (j = 0; j < dens; j++) {                            /* the static */
+            uint32_t h = (hs * 2654435761u + (uint32_t)j * 40503u) * 2246822519u;
+            fx_rect((int32_t)(h >> 8) % 232 + 4, 56 + (int32_t)(h >> 20) % 80, 2, 2, (h & 1u) ? C_W : hi);
         }
+        fx_rect(nx - 2, 138 - nh, 4, nh + 14, C_PINK);
+        fx_rect(nx - 4, 138 - nh - 4, 8, 5, C_PINK);
     }
 }
 static void fx_weird(int32_t x, int32_t y, const char *w, uint16_t c)       /* a word whose letters will not sit still */
@@ -129,6 +129,8 @@ static void fx_weird(int32_t x, int32_t y, const char *w, uint16_t c)       /* a
         cx += text_w(&FONT_L, t);
     }
 }
+#define NM_X 112                                                 /* the name's window, right of the slot boxes */
+#define NM_W 124
 static void scene_fx(void)
 {
     uint32_t k, t = rack.u[fx_sel].type, pos = fx_pos(fx_sel);
@@ -137,17 +139,26 @@ static void scene_fx(void)
     if (cv_vis(0, (int32_t)Y_HDR)) {                            /* (the screen is drawn in strips, and each strip runs all of this: only what shows) */
                                                                 /* the header: the smiley, and what is on (the strip starts black: no need to paint it so) */
     smiley_g(23, 20, 16, 0, seq_run ? (int32_t)sina(seq_step * 4u) / 40 : 0, gag_kind && fm1_ms - gag_ms < GAG_MS ? gag_kind : 0u, (int32_t)sina((fm1_ms - gag_ms) * 32u / GAG_MS) * 100 / 127);
-    if (t) {                                                    /* its name, right on top (twice, a pixel apart, to be fat); a | breaks the line */
+    if (t) {                                                    /* its name in a window of fixed width (twice, a pixel apart, to be fat); a long one scrolls round, a | is a space */
         const char *nm = FXT_NAME[t][rack.u[fx_sel].sub];
-        char l1[24], l2[28];
-        uint32_t n = 0, m = 0;
-        while (nm[n] && nm[n] != '|' && n < 23u) { l1[n] = nm[n]; n++; }
-        l1[n] = 0; l2[0] = 0;
-        if (nm[n] == '|') { n++; while (nm[n] && m < 27u) l2[m++] = nm[n++]; l2[m] = 0; }
-        if (m) {
-            cv_text(235 - text_w(&FONT_S, l1), 4, &FONT_S, l1, col); cv_text(236 - text_w(&FONT_S, l1), 4, &FONT_S, l1, col);
-            cv_text(235 - text_w(&FONT_S, l2), 22, &FONT_S, l2, col); cv_text(236 - text_w(&FONT_S, l2), 22, &FONT_S, l2, col);
-        } else { cv_text(235 - text_w(&FONT_S, l1), 12, &FONT_S, l1, col); cv_text(236 - text_w(&FONT_S, l1), 12, &FONT_S, l1, col); }
+        int32_t tw = 0, off = 0, lap, x0;
+        uint32_t n, ph;
+        char ch[2] = {0, 0};
+        for (n = 0; nm[n]; n++) { ch[0] = nm[n] == '|' ? ' ' : nm[n]; tw += text_w(&FONT_S, ch); }
+        lap = tw + 30;
+        if (tw > NM_W) { ph = fm1_ms / 30u % (uint32_t)(lap + 40); off = ph < 40u ? 0 : (int32_t)ph - 40; }     /* a beat at the start, then round */
+        else off = tw - NM_W;
+        for (n = 0; n < 2u; n++) {                              /* the line twice when it scrolls: the end meets the start */
+            x0 = NM_X - off + (int32_t)n * lap;
+            if (n && tw <= NM_W) break;
+            for (ph = 0; nm[ph]; ph++) {
+                int32_t cw;
+                ch[0] = nm[ph] == '|' ? ' ' : nm[ph];
+                cw = text_w(&FONT_S, ch);
+                if (x0 >= NM_X && x0 + cw <= NM_X + NM_W) { cv_text(x0, 12, &FONT_S, ch, col); cv_text(x0 + 1, 12, &FONT_S, ch, col); }
+                x0 += cw;
+            }
+        }
     }
     for (k = 0; k < FXU; k++) {                                 /* the bass goes into 1, then 2: two boxes and an arrow, a bracket under yours */
         int32_t x = 48 + (int32_t)k * 36, tp = rack.u[k].type;

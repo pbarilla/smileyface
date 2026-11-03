@@ -1,0 +1,8 @@
+# Dead Radio's dial: BAND low, then high; BITS up
+100 btn 2
+200 enc 1 5
+300 shot
+400 enc 2 20
+500 enc 3 12
+600 shot
+700 end

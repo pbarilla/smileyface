@@ -4,15 +4,15 @@
  * Runs in the audio interrupt; integers only. Included by smileyface.c after voice.c. */
 enum { FX_NONE, FX_DELAY, FX_DRIVE, FX_CRUSH, FX_KINDS };
 enum { DL_DIGITAL, DL_TAPE, DL_DUB };                   /* the types of each kind (a unit's `sub`) */
-enum { DR_OD, DR_FOLD, DR_CRUNCH, DR_FUZZ };            /* (the order is what projects saved, so new ones go on the end) */
+enum { DR_FOLD };
 enum { CR_BITS, CR_LOFI };
 #define FXN 4u
 #define FXU 2u                                         /* the slots in use: two, one after the other (the data has four) */
-#define FX_VER 3u                                       /* a rack saved with other kinds is emptied */
+#define FX_VER 4u                                       /* a rack saved with other kinds is emptied */
 typedef struct { uint8_t type, in, bus, sub; uint8_t p[8]; } fxu_t;        /* in: 0 the bass, n the unit in slot n - 1 (an earlier one); bus: 1 = it goes to the output */
 typedef struct { uint8_t on, ver, pad[2]; fxu_t u[FXN]; } fxr_t;           /* 52 bytes */
 static fxr_t rack;
-static const uint8_t FX_SUBS[FX_KINDS] = {1, 3, 4, 2};
+static const uint8_t FX_SUBS[FX_KINDS] = {1, 3, 1, 2};
 
 #define DL_N 24576u                                     /* the delay line: 1.1 s at 22.05 kHz */
 static int16_t dl_buf[FXN][DL_N] __attribute__((section(".pool")));
@@ -25,7 +25,7 @@ static const char *const FX_NAME[FX_KINDS] = {"", "DELAY", "DRIVE", "CRUSH"};
 static const uint8_t FX_DEF[FX_KINDS][4][8] = {         /* each type's starting knobs */
     {{0}},
     {{12, 10, 22, 24}, {12, 12, 14, 8}, {12, 10, 22, 24}},     /* digital: TIME FEEDBK MIX TONE; tape: TIME FEEDBK MIX WOW; dub: TIME FEEDBK CUTOFF LEVEL */
-    {{12, 20, 31, 22}, {7, 24, 31, 22}, {14, 18, 31, 20}, {18, 14, 31, 18}},      /* DRIVE TONE MIX LEVEL */
+    {{7, 24, 31, 22}},      /* DRIVE TONE MIX LEVEL */
     {{22, 12, 31, 24}, {10, 20, 31, 24}},                      /* bits: BITS RATE MIX LEVEL; lofi: BAND BITS MIX LEVEL */
 };
 static const uint8_t FX_DIV[8] = {1, 2, 3, 4, 6, 8, 12, 16};   /* the digital delay's TIME, in half steps: 1/32 1/16 dotted 1/16 1/8 ... 1/2 */
@@ -104,20 +104,9 @@ static int32_t fx_echo(fxs_t *s, int16_t *buf, int32_t x, int32_t tgt, int32_t f
     return x + mulq(wet, wetg);
 }
 
-/* Drive: gain into a shaper (soft, hard and lopsided, folded), a tone filter, and a mix with the dry */
+/* Drive: gain into a fold, a tone filter, and a mix with the dry */
 static int32_t fx_shape(uint32_t sub, int32_t v)
 {
-    if (sub == DR_OD) return soft(v) * 5 / 6;
-    if (sub == DR_CRUNCH) {                                     /* hard clipping, the top a little lower than the bottom */
-        int32_t t = v > 0 ? 21000 : 25000;
-        if (v > t) v = t;
-        if (v < -t) v = -t;
-        return v;
-    }
-    if (sub == DR_FUZZ) {                                       /* a square-ish wave with the octave up folded in: a rectified copy, and a gate that sputters at low levels */
-        int32_t t = v > 0 ? 17000 : 12000, c = v > t ? t : v < -t ? -t : v, a = c < 0 ? -c : c;
-        return c * 3 / 4 + a / 3 - (a < 1500 ? c / 2 : 0);
-    }
     {
         uint32_t m = (uint32_t)(v + 32768) & 131071u;
         return (m < 65536u ? (int32_t)m - 32768 : 98304 - (int32_t)m) * 5 / 8;
@@ -269,9 +258,9 @@ static void fx_morph(uint32_t k, uint32_t type, uint32_t sub) /* another unit in
     u->type = (uint8_t)type;
 }
 static void fx_unplug(uint32_t k) { fx_set(k, FX_NONE, 0); }                           /* empty a slot; the list closes up */
-#define FXL_N 10u                                               /* the effects ALGORITHM walks, none first */
-static const uint8_t FXL_K[FXL_N] = {FX_NONE, FX_DELAY, FX_DELAY, FX_DELAY, FX_CRUSH, FX_CRUSH, FX_DRIVE, FX_DRIVE, FX_DRIVE, FX_DRIVE};      /* ALGORITHM walks them all in a row */
-static const uint8_t FXL_S[FXL_N] = {0, DL_DIGITAL, DL_TAPE, DL_DUB, CR_BITS, CR_LOFI, DR_OD, DR_CRUNCH, DR_FUZZ, DR_FOLD};
+#define FXL_N 7u                                               /* the effects ALGORITHM walks, none first */
+static const uint8_t FXL_K[FXL_N] = {FX_NONE, FX_DELAY, FX_DELAY, FX_DELAY, FX_CRUSH, FX_CRUSH, FX_DRIVE};      /* ALGORITHM walks them all in a row */
+static const uint8_t FXL_S[FXL_N] = {0, DL_DIGITAL, DL_TAPE, DL_DUB, CR_BITS, CR_LOFI, DR_FOLD};
 static uint32_t fx_pos(uint32_t k)                              /* where the unit in a slot is in that row */
 {
     uint32_t i;
