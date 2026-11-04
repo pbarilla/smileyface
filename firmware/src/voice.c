@@ -27,7 +27,7 @@ static knobs_t kn = {14, 20, 18, 12, 16, 14, 4, 0, 4, 12, 2, 0, 16, 0, 12, 31, 0
 #ifndef REL_RATE
 #define REL_RATE 2200                                    /* how fast the volume closes at the end of a note, per control tick, two poles: 4500 is about 3 ms, 2000 about 12 ms */
 #endif
-static volatile uint8_t vol_dec = 31;               /* VOL DEC: 0 shortest .. 15 three seconds, 16..31 the note settles lower and lower; 31 holds for the whole gate (how it always was) */
+static volatile uint8_t vol_dec = 31;               /* DECAY (the Devil Fish's volume decay): 0 shortest .. 15 three seconds, 16..31 the note settles lower and lower; 31 holds for the whole gate (how it always was) */
 static volatile uint32_t seq_run, seq_step = STEPS - 1u, seq_bpm = 126;
 /* patterns cued to play next, each when the one before ends (the main loop pushes, the audio pops) */
 #define CUEQ 8u
@@ -87,7 +87,7 @@ static void gate_on(uint32_t note, uint32_t acc, uint32_t slide_in)
         vo.rs = vo.rs * 1664525u + 1013904223u; vo.nd1 = (int32_t)(vo.rs >> 16) - 32768;
     } else vo.va = 1 << 24;                                  /* a slid note keeps its filter sweep, but its volume is plucked again: VOL DEC cannot make a slide vanish */      /* a slid note keeps going: no new envelope */
     vo.acc = acc;
-    vo.acc_cap += acc ? (32767 - vo.acc_cap) / 3 : 0;
+    vo.acc_cap += acc ? ((kn.swp < 8u ? 65534 : 32767) - vo.acc_cap) / 3 : 0;        /* SWEEP slow: it piles up twice as high */
     vo.gate = 1;
 }
 
@@ -166,7 +166,7 @@ static int32_t core_step(void)                                  /* one step of t
         S = mulq(mulq(vo.s[0], vo.G3) + mulq(vo.s[1], vo.G2) + mulq(vo.s[2], vo.G) + vo.s[3], vo.omG);
         fb = (S >> 4) * vo.k >> 12;
         if (vo.drv < 3) { vo.nz = vo.nz * 1664525u + 1013904223u; fb -= (int32_t)(vo.nz >> 27) - 16; }       /* (a whisper, so the filter can start ringing on its own when the oscillator is turned down) */
-        u = soft(mulq((s * (int32_t)(dio ? DRV_G[vo.drv & 31] * 5u / 2u : DRV_G[vo.drv & 31]) >> 8) - fb, vo.R)) * 16;          /* DRV: the oscillator pushed into the ladder: silent to 40x */
+        u = soft(mulq(((s >> 2) * (int32_t)(dio ? DRV_G[vo.drv & 31] * 5u / 2u : DRV_G[vo.drv & 31]) >> 6) - fb, vo.R)) * 16;          /* DRV: the oscillator pushed into the ladder: silent to 66.6x the default (s >> 2 keeps the product inside 32 bits) */
         o = mulq(u, vo.G) + mulq(vo.s[0], vo.omG); vo.s[0] = 2 * o - vo.s[0];
         u = dio ? dsoft(o) : o; o = mulq(u, vo.G) + mulq(vo.s[1], vo.omG); vo.s[1] = 2 * o - vo.s[1];
         x2 = o;
@@ -221,7 +221,7 @@ static void voice_render(int32_t *out, uint32_t n)
         if ((vo.tick++ & 7u) == 0u) {                       /* control rate: 5.5 kHz */
             const uint32_t accx = vo.acc || fx_acc;
             const uint32_t swp_on = kn.hir != 15u;                     /* ACC SWP at 0: no accent sweep */
-            int32_t tg = vo.gate ? (accx && swp_on ? 32767 : 24000) : 0, e, idx, amt, pp;
+            int32_t tg = vo.gate ? (accx && swp_on ? 32767 : 24000) : 0, e, idx, qi, amt, pp;
             uint32_t ep;
             vo.p += mulq(vo.tp - vo.p, GLIDE_G[kn.sld]);
             if ((++vo.dc & 4095) == 0) {                       /* DRIFT: two slow wanderers, one for the pitch and one for the cutoff */
@@ -240,20 +240,30 @@ static void voice_render(int32_t *out, uint32_t n)
                 vo.va += mulq(fl - vo.va, VD_G[vol_dec < 15u ? vol_dec : 15u]);
                 tg = (tg * (vo.va >> 9)) >> 15;
             } else vo.va = 1 << 24;
-            { int32_t vr = vo.gate ? 9000 - (accx ? 0 : (int32_t)kn.atk * 250) : REL_RATE;          /* two poles one after the other: the volume starts and ends with no corner, so no tick */
-              vo.v1 += mulq(tg - vo.v1, vr); vo.vca += mulq(vo.v1 - vo.vca, vr); }        /* ATK: a soft attack (1 to 16 ms), on the notes without an accent */
+            { int32_t vr = vo.gate ? (accx ? 9000 : ATK_G[kn.atk]) : REL_RATE;          /* two poles one after the other: the volume starts and ends with no corner, so no tick */
+              vo.v1 += mulq(tg - vo.v1, vr); vo.vca += mulq(vo.v1 - vo.vca, vr); }        /* ATK: a soft attack (2 to 30 ms), on the notes without an accent */
             ep = vo.env_pos >> 16;
             e = ENV_T[ep < 767u ? ep : 767u];
             env_vis = vo.gate ? e : env_vis - (env_vis >> 3);
-            vo.env_pos += DEC_STEP[accx ? kn.adc : kn.dec];            /* accent has its own decay (ADC) */
+            vo.env_pos += DEC_STEP[accx ? kn.adc : kn.dec];            /* NRM DEC and ACC DEC: the filter envelope's two decays */
             vo.acc_cap -= vo.acc_cap >> (12 - (int32_t)kn.swp / 6);        /* SWP: how long the accents pile up */
             amt = ENV_AMT[kn.env];
             if (accx && swp_on) amt += mulq(amt + 30, 8192 + (vo.acc_cap >> 1) + (int32_t)kn.acc * 1000);
-            idx = (int32_t)kn.cut * 7 + mulq(e, amt) + ((int32_t)vo.note - 45) * (int32_t)kn.trk * 24 / 310;     /* TRK: the cutoff follows the note */
+            idx = (int32_t)kn.cut * 7 + mulq(e, amt);
             if (W_DRIFT) idx += mulq(vo.dr1 + vo.nd1, W_DRIFT == 1u ? 24 : 64);
             if (idx > 255) idx = 255;
             if (idx < 0) idx = 0;
-            vo.ci += ((idx << 8) - vo.ci) / 3;                       /* the cutoff does not jump when a note starts: about half a millisecond to get there (no tick) */
+            qi = idx << 8;
+            if (kn.trk) {                                           /* TRK: the cutoff follows the note, in Hz, like the Devil Fish: 2.7 kHz a volt (an octave) at the top, none at C2 (65 Hz, 2 V) */
+                int32_t hz = (int32_t)CUT_HZ[idx] + ((vo.p - 37 * 256) * (int32_t)kn.trk * 29) / 1024, lo = 0, hi = 255;
+                if (hz <= (int32_t)CUT_HZ[0]) qi = 0;
+                else if (hz >= (int32_t)CUT_HZ[255]) qi = 255 << 8;
+                else {
+                    while (hi - lo > 1) { int32_t m = (lo + hi) >> 1; if ((int32_t)CUT_HZ[m] <= hz) lo = m; else hi = m; }
+                    qi = (lo << 8) + (hz - (int32_t)CUT_HZ[lo]) * 256 / ((int32_t)CUT_HZ[lo + 1] - (int32_t)CUT_HZ[lo]);
+                }
+            }
+            vo.ci += (qi - vo.ci) / 3;                       /* the cutoff does not jump when a note starts: about half a millisecond to get there (no tick) */
             idx = vo.ci >> 8;
             vo.idxc = idx; vo.fmk = (int32_t)kn.fm * (int32_t)kn.fm;
             k = RES_K[kn.res];

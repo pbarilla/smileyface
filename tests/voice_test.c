@@ -81,7 +81,7 @@ int main(void)
         static int32_t o[256 * 120];
         uint32_t i;
         kn.cut = 14; kn.res = 10; kn.env = 0; kn.wave = 0; kn.pol = 31; kn.hir = 0; kn.drv = 4;
-        /* VOL DEC: a held note must fall away when it is short, and stay when it is 31 */
+        /* DECAY (the volume): a held note must fall away when it is short, and stay when it is 31 */
         for (i = 0; i < 3; i++) {
             static const uint8_t V[3] = {31, 6, 0};
             double e1 = 0, e2 = 0; uint32_t j;
@@ -89,9 +89,9 @@ int main(void)
             hold(45, 0, 120, 0, o, &r1);
             for (j = 300; j < 900; j++) e1 += (double)o[j] * o[j];
             for (j = 24000; j < 27000; j++) e2 += (double)o[j] * o[j];
-            printf("VOL DEC %2u: first 20 ms rms %5d, at 0.55 s rms %5d\n", V[i], (int32_t)sqrt(e1 / 600), (int32_t)sqrt(e2 / 3000));
-            if (i == 0 && e2 < e1 / 4) { printf("FAIL: VOL DEC 31 should hold the note\n"); return 1; }
-            if (i == 2 && e2 > e1 / 100) { printf("FAIL: VOL DEC 0 should die away\n"); return 1; }
+            printf("DECAY %2u: first 20 ms rms %5d, at 0.55 s rms %5d\n", V[i], (int32_t)sqrt(e1 / 600), (int32_t)sqrt(e2 / 3000));
+            if (i == 0 && e2 < e1 / 4) { printf("FAIL: DECAY 31 should hold the note\n"); return 1; }
+            if (i == 2 && e2 > e1 / 100) { printf("FAIL: DECAY 0 should die away\n"); return 1; }
         }
         vol_dec = 31;
         /* FILT FM: turned up, it must change the sound (a knob that does nothing is a bug) */
@@ -120,10 +120,10 @@ int main(void)
     /* 3d: every knob and switch must do something: a pattern with accents, slides and a run of accents, each control moved from low to high */
     {
         static const struct { const char *name; uint32_t off; uint32_t lo, hi; } C[] = {
-            {"CUTOFF", 0, 0, 31}, {"RESON", 1, 0, 31}, {"ENVMOD", 2, 0, 31}, {"DECAY", 3, 0, 31}, {"ACCENT", 4, 0, 31}, {"SLIDE", 5, 0, 31}, {"DRIVE", 6, 4, 31},
+            {"CUTOFF", 0, 0, 31}, {"RESON", 1, 0, 31}, {"ENVMOD", 2, 0, 31}, {"NRM DEC", 3, 0, 31}, {"ACCENT", 4, 0, 31}, {"SLIDE", 5, 0, 31}, {"DRIVE", 6, 4, 31},
             {"ACC DEC", 8, 0, 31}, {"TRACK", 9, 0, 31}, {"ATTACK", 10, 0, 31}, {"MUFFLE", 11, 0, 31}, {"TUNE", 12, 0, 31}, {"SUB OSC", 13, 0, 31}, {"SWEEP", 14, 0, 31},
             {"POLES", 15, 0, 31}, {"FILT FM", 16, 0, 31}, {"ACC SWP: hi res", 17, 0, 31}, {"ACC SWP: no sweep", 17, 0, 15}, {"SWING", 18, 0, 31}, {"LEVEL", 19, 0, 31},
-            {"WAVE", 100, 0, 1}, {"ACCENTS off", 101, 0, 1}, {"BASS", 102, 0, 2}, {"DRIFT", 103, 0, 2}, {"DIODE", 104, 0, 1}, {"TWO POLES", 105, 0, 1}, {"VOL DEC", 106, 12, 31},
+            {"WAVE", 100, 0, 1}, {"ACCENTS off", 101, 0, 1}, {"BASS", 102, 0, 2}, {"DRIFT", 103, 0, 2}, {"DIODE", 104, 0, 1}, {"TWO POLES", 105, 0, 1}, {"DECAY", 106, 12, 31},
         };
         static int32_t pa[256 * 300], pb[256 * 300];
         static const uint8_t N[16] = {36, 48, 39, 0, 43, 55, 36, 36, 60, 41, 0, 46, 36, 48, 52, 39}, FL[16] = {1, 0, 2, 0, 1, 1, 1, 0, 3, 0, 0, 2, 1, 0, 0, 0};

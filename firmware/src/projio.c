@@ -31,7 +31,7 @@ static void clean_slot(slot_t *s)                               /* whatever came
     if (s->bpm < 60u || s->bpm > 200u) s->bpm = 126;
     if (s->pcur >= PATS) s->pcur = 0;
     fx_sanitize(&s->fx);
-    s->used = 1; if (s->pad > 31u) s->pad = 0;                  /* (pad: 31 less VOL DEC, so older projects hold the note) */
+    s->used = 1; if (s->pad > 31u) s->pad = 0;                  /* (pad: 31 less DECAY, so older projects hold the note) */
 }
 static uint32_t px_snapshot(uint32_t slot)       /* into px: the length, 0 when empty */
 {

@@ -19,6 +19,8 @@ table("NOTE_INC", "uint32_t", [min(0xFFFFFFFF, round(440 * 2 ** ((n - 69) / 12) 
 def _G(i, fs):
     g = math.tan(math.pi * 28 * (12000 / 28) ** (i / 255) / fs)
     return round(g / (1 + g) * 32768)
+# the same indices in Hz, for the filter tracking
+table("CUT_HZ", "uint16_t", [round(28 * (12000 / 28) ** (i / 255)) for i in range(256)], 16)
 table("CUT_G1", "uint16_t", [_G(i, FS) for i in range(256)], 16)          # run at 44.1 kHz
 table("CUT_G2", "uint16_t", [_G(i, FS * 2) for i in range(256)], 16)      # run at 88.2 kHz (2x oversampled)
 # filter feedback (Q12) for the RESONANCE knob 0..31: 0 .. just short of self oscillation
@@ -27,16 +29,18 @@ table("RES_K", "uint16_t", [round(3.95 * (i / 31) ** 1.4 * 4096) for i in range(
 table("ENV_AMT", "uint8_t", [round(150 * (i / 31) ** 1.2) for i in range(32)], 16)
 # the envelope curve: exp(-i/96), Q15, i = 0..767 (eight time constants)
 table("ENV_T", "uint16_t", [round(32767 * math.exp(-i / 96)) for i in range(768)], 16)
-# envelope speed per 8 samples, Q16 table steps: DECAY 0..31, 30 ms .. 2.6 s of time constant
-table("DEC_STEP", "uint16_t", [min(65535, round(8 / (0.03 * (2.6 / 0.03) ** (i / 31) * FS) * 96 * 65536)) for i in range(32)], 16)
-# glide per 8 samples, Q15: SLIDE TIME 0..31, 8 ms .. 400 ms
-table("GLIDE_G", "uint16_t", [round((1 - math.exp(-8 / (0.008 * (0.4 / 0.008) ** (i / 31) * FS))) * 32768) for i in range(32)], 16)
+# envelope speed per 8 samples, Q16 table steps: NRM DEC and ACC DEC 0..31 (the Devil Fish's MEG pots), 30 ms .. 3 s of time constant
+table("DEC_STEP", "uint16_t", [min(65535, round(8 / (0.03 * (3 / 0.03) ** (i / 31) * FS) * 96 * 65536)) for i in range(32)], 16)
+# glide per 8 samples, Q15: SLIDE TIME 0..31, 22 ms .. 132 ms of time constant (the Devil Fish: 100K x 0.22 uF, up to 600K x 0.22 uF; 60 .. 360 ms to arrive)
+table("GLIDE_G", "uint16_t", [round((1 - math.exp(-8 / (0.022 * (0.132 / 0.022) ** (i / 31) * FS))) * 32768) for i in range(32)], 16)
 # TUNE 0..31: -100 .. +93 cents, a ratio in Q15
 table("TUNE_R", "uint16_t", [round(32768 * 2 ** ((i - 16) * 6.25 / 1200)) for i in range(32)], 16)
-# DRIVE 0..31 as the gain on the oscillator into the filter, Q8: 0 is silence (the filter rings alone), 1..16 as it always was ((4 + n) / 6), then up to 40x
-table("DRV_G", "uint16_t", [0] + [round((4 + i) / 6 * 256) for i in range(1, 17)] + [round(10 / 3 * 12 ** ((i - 16) / 15) * 256) for i in range(17, 32)], 16)
-# VOL DEC 0..15: the volume envelope's step per control tick (5.5 kHz), Q15: 16 ms .. 3 s of time constant (16 and up hold 3 s and lift the floor, 31 never falls)
+# DRIVE 0..31 as the gain on the oscillator into the filter, Q8: 0 is silence (the filter rings alone), 1..16 as it always was ((4 + n) / 6), then up to 66.6x the default (the Devil Fish's Overdrive: up to 66.6 times normal, with the default as normal)
+table("DRV_G", "uint16_t", [0] + [round((4 + i) / 6 * 256) for i in range(1, 17)] + [round(10 / 3 * 26.64 ** ((i - 16) / 15) * 256) for i in range(17, 32)], 16)
+# DECAY (the volume envelope, VOL DEC in the code) 0..15: the volume envelope's step per control tick (5.5 kHz), Q15: 16 ms .. 3 s of time constant (16 and up hold 3 s and lift the floor, 31 never falls)
 table("VD_G", "uint16_t", [max(1, round((1 - math.exp(-8 / (0.016 * (3 / 0.016) ** (i / 15) * FS))) * 32768)) for i in range(16)], 16)
+# ATTACK 0..31: the volume's rise per control tick on notes without an accent, Q15: 0.565 ms .. 9 ms of time constant per pole (two poles: about 2 ms .. 30 ms to rise)
+table("ATK_G", "uint16_t", [round((1 - math.exp(-8 / (0.000565 * (9 / 0.565) ** (i / 31) * FS))) * 32768) for i in range(32)], 16)
 table("SIN64", "int8_t", [round(127 * math.sin(2 * math.pi * i / 64)) for i in range(64)], 16)
 
 # the FX rack (fx.c): a filter knob 0..31 is 70 Hz .. 10 kHz, log

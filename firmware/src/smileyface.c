@@ -10,7 +10,7 @@
  *   SEL held         SELECT wraps the pattern along (the steps slide forwards or backwards, round the end)
  *   SELECT           the cursor along the steps (FLY: steers the ship, WALK: steps between lanes)
  *   PRESETS          the pattern (16 a project); while it plays the pattern is cued for the end of the loop
- *   KNOB 1..4        the sound, six pages (ALGORITHM turns them): CUTOFF RESON ENVMOD DECAY / TUNE ACCENT SLIDE TEMPO / DRIVE ACC DEC TRACK ATTACK / FILT FM SWING LENGTH LEVEL /
+ *   KNOB 1..4        the sound, six pages (ALGORITHM turns them): CUTOFF RESON ENVMOD NRM DEC / TUNE ACCENT SLIDE TEMPO / DRIVE ACC DEC TRACK ATTACK / FILT FM DECAY LENGTH LEVEL /
  *                    WAVE SUB OSC MUFFLE SWEEP / HI RES POLES ACCENT (the last two pages are the switches, drawn as switches)
  *   PLAY             start / stop      SEQ   tap tempo      LFO   a random pattern      ARP   nudge a few steps      REC   undo (one level)
  *   FX               an effect after the bass (ALGORITHM: none, then each in a row; HOME: back)

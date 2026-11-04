@@ -1,4 +1,4 @@
-# page 4 (VOL DEC), page 5 (SUB OSC has four places), page 6 (ACC SWP three-way, SWING, POLES, ACCENT), page 7 (BASS DRIFT DIODE)
+# page 4 (DECAY), page 5 (SUB OSC has four places), page 6 (ACC SWP three-way, SWING, POLES, ACCENT), page 7 (BASS DRIFT DIODE)
 200 enc 1 1
 210 enc 1 1
 220 enc 1 1

@@ -155,8 +155,8 @@
    "how far each note sweeps it"
   ],
   [
-   "DECAY",
-   "how long the sweep takes"
+   "NRM DEC",
+   "how long a normal note's sweep takes"
   ],
   [
    "TUNE",
@@ -180,7 +180,7 @@
   ],
   [
    "ACC DEC",
-   "how long an accent rings"
+   "how long an accent's sweep takes"
   ],
   [
    "TRACK",
@@ -195,7 +195,7 @@
    "the oscillator shakes the filter"
   ],
   [
-   "VOL DEC",
+   "DECAY",
    "how long each note lasts: all the way up, it holds"
   ],
   [

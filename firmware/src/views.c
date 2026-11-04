@@ -64,8 +64,8 @@ static void pad_set(uint32_t p, uint32_t l)                     /* a switch to a
 #define OFS(f) ((uint8_t)__builtin_offsetof(knobs_t, f))
 enum { K_TEMPO = 250, K_LEN = 251, K_LEVEL = 252, K_VDEC = 253, K_NONE = 255, K_SW = 200 };      /* K_SW + a switch pad: a stepped knob */
 static const char *const KNAME[PAGES][4] = {
-    {"CUTOFF", "RESON", "ENVMOD", "DECAY"}, {"TUNE", "ACCENT", "SLIDE", "TEMPO"}, {"DRIVE", "ACC DEC", "TRACK", "ATTACK"},
-    {"FILT FM", "VOL DEC", "LENGTH", "LEVEL"}, {"WAVE", "SUB OSC", "MUFFLE", "SWEEP"}, {"ACC SWP", "SWING", "POLES", "ACCENT"}, {"BASS", "DRIFT", "DIODE", ""}};
+    {"CUTOFF", "RESON", "ENVMOD", "NRM DEC"}, {"TUNE", "ACCENT", "SLIDE", "TEMPO"}, {"DRIVE", "ACC DEC", "TRACK", "ATTACK"},
+    {"FILT FM", "DECAY", "LENGTH", "LEVEL"}, {"WAVE", "SUB OSC", "MUFFLE", "SWEEP"}, {"ACC SWP", "SWING", "POLES", "ACCENT"}, {"BASS", "DRIFT", "DIODE", ""}};
 static const uint8_t KP[PAGES][4] = {
     {OFS(cut), OFS(res), OFS(env), OFS(dec)}, {OFS(tun), OFS(acc), OFS(sld), K_TEMPO}, {OFS(drv), OFS(adc), OFS(trk), OFS(atk)},
     {OFS(fm), K_VDEC, K_LEN, K_LEVEL},
