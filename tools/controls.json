@@ -25,7 +25,7 @@
   "SEQ": "tap",
   "PLAY": "play",
   "REC": "undo",
-  "FX": "effect"
+  "FX": "punch-in pads"
  },
  "controls": [
   {
@@ -125,14 +125,14 @@
   {
    "id": "GLO+HOME",
    "name": "GLO + HOME",
-   "STEPS": "Menu: Factory Reset, Roll The Dice",
+   "STEPS": "Menu: Factory Reset, Roll The Dice, MIDI Clock, Bluetooth",
    "PLAY": "Menu"
   },
   {
    "id": "FX",
    "name": "FX",
-   "STEPS": "FX: two effects",
-   "PLAY": "FX: two effects"
+   "STEPS": "FX: punch-in pads (16 keys)",
+   "PLAY": "FX: punch-in pads (16 keys)"
   },
   {
    "id": "REC",
@@ -263,6 +263,6 @@
   "Pages 5 and 6 of the knobs are the switches, drawn as switches: turn a knob right to flip one up",
   "Hold SEL on a project in the project list to copy it, hold EDIT to start it over",
   "Send MIDI clock and the FM-1 follows it. The tempo turns blue",
-  "GLO + HOME is the menu. Roll The Dice fills every pattern of every project with random stuff: hold OCT+ to confirm"
+  "GLO + HOME is the menu. MIDI Clock sends the clock or follows one (Off, Send, Follow). Roll The Dice fills every pattern of every project with random stuff: hold OCT+ to confirm"
  ]
 }

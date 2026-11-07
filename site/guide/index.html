@@ -45,7 +45,7 @@
     <nav><a href="../">Home</a><a href="../cheatsheet/">Cheat sheet</a><a href="../play/">Play online</a><a href="../share/">Share</a><a href="../install.html">Install</a></nav>
   </header>
   <p class="lead">Acid bass line thing for the FM-1. You don't have to read any of this: press <code>GLO</code> on the FM-1 any time and it explains itself.</p>
-  <div class="toc"><a href="#start">Quick start</a><a href="#steps">Write</a><a href="#sound">Knobs</a><a href="#play">Patterns</a><a href="#projects">Projects</a><a href="#fx">FX</a><a href="#more">More</a></div>
+  <div class="toc"><a href="#start">Quick start</a><a href="#steps">Write</a><a href="#sound">Knobs</a><a href="#play">Patterns</a><a href="#projects">Projects</a><a href="#fx">FX</a><a href="#bluetooth">Bluetooth</a><a href="#more">More</a></div>
 
 <section id="start">
   <div class="row">
@@ -108,15 +108,32 @@
 </section>
 <section id="fx">
   <div class="row">
-    <div class="txt"><h2>FX</h2><p>Press <code>FX</code> to put up to two effects after the bass, one into the next. Turn <code>SELECT</code> to move between slot 1 and slot 2. Press <code>HOME</code> to go back.</p>
+    <div class="txt"><h2>FX</h2><p>Press <code>FX</code> and the 16 white keys become punch-in pads. Hold a key for its effect. Let go and it stops. Press <code>FX</code> or <code>HOME</code> to go back.</p>
 <ul>
-  <li>Turn <code>ALGORITHM</code> to walk through the effects: three delays (the last, Take the dub, is inspired by Korg's monotron Delay), two crushers and two drives. Turn it back to nothing to take the effect out. The order matters: a delay into a fuzz is not a fuzz into a delay. Its knobs come back if you turn it in again.</li>
-  <li>The four knobs are the effect's in the slot you're on. The keys play the bass so you can hear it.</li>
-  <li>The effect is saved with the project. <code>REC</code> is undo now.</li>
+  <li>Pads 1 to 8 are the same on Chipbox, Smileyface and Drumlab: <b>STOP</b> (the tape slows to a halt), <b>REPEAT</b>, <b>LPF</b>, <b>HPF</b>, <b>ECHO</b>, <b>REVERB</b>, <b>CRUSH</b> and <b>GATE</b>. They are the ones that travel over Bluetooth.</li>
+  <li>Pads 9 to 15 only exist on Smileyface and they work on the bass: <b>ACCENT</b> accents every note, <b>SLIDE</b> slides every note, <b>OCT UP</b> and <b>OCT DN</b> move it an octave, <b>RESMAX</b> turns the resonance all the way up, <b>SWEEP</b> sweeps the cutoff, <b>SHORT</b> cuts the decay.</li>
+  <li>Pad 16 is the <b>LATCH</b>. Turn it on and a tap holds a pad on, the next tap lets it go.</li>
+  <li>The old effects rack (delays, crushers and drives) is switched off.</li>
 </ul></div>
-    <img src="../img/fx.png" alt="The FX rack">
+    <img src="../img/fx.png" alt="The FX pads">
   </div>
 </section>
+<section id="bluetooth">
+  <h2>Bluetooth sync</h2>
+  <p class="plain">Smileyface, Chipbox and Drumlab play together over Bluetooth. One leads and the others follow. No cables, no pairing.</p>
+  <ul>
+    <li>Press <code>GLO</code> and <code>HOME</code> together, then pick <b>Bluetooth</b>. On the leader, set <b>Sync</b> to Lead. On the others, set it to Follow. <code>OCT+</code> changes it.</li>
+    <li>The status says <b>Searching</b>, then <b>Linked</b> when it hears the leader, then <b>In sync</b> when it is playing along.</li>
+    <li>Press <code>PLAY</code> on the leader. Smileyface starts at the next bar and takes its tempo. Stop the leader and it stops.</li>
+    <li><b>Sidechain</b>: the leader says where its kicks are. The bass ducks on every one and swells back, so it pumps.</li>
+    <li><b>Patterns</b>: when the leader changes pattern, Smileyface changes at the end of its loop. The leader's swing comes with it.</li>
+    <li><b>Punch-in FX</b>: hold one of pads 1 to 8 on the leader and Smileyface does it too. Hold one on Smileyface and the others do it. Pads 9 to 15 are different on each FM-1 and don't travel.</li>
+    <li><b>Key</b>: a leading Chipbox works out its key. A following Smileyface moves its notes to the nearest note of that key. A leading Smileyface tells the others its own.</li>
+    <li><b>Demo</b> loads a locked acid line to play along with the others: D minor, 124 BPM, two patterns. Nothing in it is saved. Open any project to leave it.</li>
+    <li>Before you install a new firmware, set Sync to Off. While the radio runs, the FM-1 can stop answering the installer.</li>
+  </ul>
+</section>
+
 <section id="more">
   <h2>More tricks</h2>
   <ul>
@@ -124,7 +141,7 @@
     <li>Tap <code>SEQ</code> in time to set the tempo. Or turn <code>ALGORITHM</code> once and use <code>KNOB 4</code>.</li>
     <li>Send MIDI clock to the FM-1 and it follows it. The tempo turns blue. Start and stop come along too.</li>
     <li>Play it from a keyboard over USB-MIDI. Hard notes (velocity 100 and up) are accents.</li>
-    <li>Press <code>GLO</code> and <code>HOME</code> together for the menu: Factory Reset, and Roll The Dice, which fills every pattern of every project with random stuff (you have to hold <code>OCT+</code> to confirm).</li>
+    <li>Press <code>GLO</code> and <code>HOME</code> together for the menu: Factory Reset, MIDI Clock (Off, Send or Follow: it follows an outside clock unless you change it) and Roll The Dice, which fills every pattern of every project with random stuff (you have to hold <code>OCT+</code> to confirm).</li>
     <li>Everything on one page, ready to print: the <a href="../cheatsheet/">cheat sheet</a>.</li>
   </ul>
 </section>

@@ -38,8 +38,9 @@ static const mpage_t MP_PROJ[] = {
     {"Menu", M_GLO | M_HOME, "Press GLO and HOME together. Careful in there."},
 };
 static const mpage_t MP_FX[] = {
-    {"Add one", M_FX | M_ALGO | M_SMALL, "Press FX. Turn ALGORITHM to pick an effect. Press HOME to leave."},
-    {"Add two", M_SELECT | M_ALGO | M_SMALL, "Turn SELECT to add a second effect, after the first."},
+    {"Punch in", M_FX | M_SMALL, "Press FX. The white keys are 16 pads. Hold one for its effect. Press FX or HOME to leave."},
+    {"Latch", M_FX | M_SMALL, "Pad 16 is the latch. With it on, tap a pad to keep it on, and tap it again to let it go."},
+    {"Shared", M_FX | M_SMALL, "Pads 1 to 8 are the same on Chipbox and Drumlab, and sync over Bluetooth. Pads 9 to 15 are only on Smileyface."},
 };
 #define MC(n, c, p) {n, c, p, sizeof p / sizeof p[0]}
 static const mchap_t MCH[] = {

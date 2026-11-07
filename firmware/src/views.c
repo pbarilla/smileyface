@@ -11,7 +11,8 @@ static void wd_rings(void);
 static void vortex_floor(void);
 #define VORTEX_MS 45000u
 
-static struct { uint8_t slot, oct, view, magic; } cfg;          /* the settings sector: where you were */
+static struct { uint8_t slot, oct, view, magic, clk, pad[3]; } cfg;   /* the settings sector: where you were, and the MIDI clock (0 off, 1 send, 2 follow) */
+#define CLK_DEF 2u                                              /* it always followed an outside clock, so that stays */
 #define SET_OK 0xA6u
 static uint32_t slot_cur;
 static uint32_t cur, page, view_now;
@@ -515,13 +516,16 @@ static void slot_pack(slot_t *sl)                               /* what plays, a
     for (a = 0; a < PATS; a++) { for (b = 0; b < STEPS; b++) sl->pats[a][b] = pats[a][b]; sl->plen[a] = plen[a]; }
     sl->kn = kn; sl->bpm = (uint8_t)seq_bpm; sl->pcur = (uint8_t)pat_idx; sl->used = 1; sl->pad = (uint8_t)(31u - vol_dec); sl->fx = rack;
 }
+static uint8_t bt_locked;                                       /* the Bluetooth demo is on: a locked project, in memory only (opening a project ends it) */
 static void slot_load(uint32_t i)
 {
+    bt_locked = 0;
     slot_apply(slot_get(i));
     slot_cur = i;
 }
 static void slot_save(void)
 {
+    if (bt_locked) return;
     slot_pack(&bank.s[slot_cur]);
     bank_flush();
 }

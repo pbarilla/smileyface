@@ -96,18 +96,65 @@ static volatile uint32_t sq_acc;
 static volatile uint32_t ext_on, ext_in;                        /* an outside clock: 24 a quarter note, counted by the main loop (ext_in) */
 static uint32_t ext_seen, ext_phase, ext_age;
 static uint32_t sq_len, sq_age, sq_prev_sld;
+#ifdef FELUCCA_ID                                            /* firmware/ble/ble.c: the brothers' Bluetooth link, its own unit */
+extern volatile uint8_t brothers_mode;                      /* 0 off, 1 lead, 2 follow */
+extern void brothers_set(uint32_t mode);
+extern void brothers_poll(void);
+extern uint32_t brothers_link(void);
+extern void brothers_lead_tick(uint32_t off, uint32_t per);
+extern uint32_t brothers_bpm(void);
+extern void brothers_lead_set(uint32_t pat, uint32_t kick, uint32_t fx, uint32_t scale, uint32_t swing);
+extern uint32_t brothers_pat(void);
+extern uint32_t brothers_fx(void);
+extern uint32_t brothers_scale(void);
+extern uint32_t brothers_swing(void);
+extern uint32_t brothers_detect(const uint8_t *notes, uint32_t n);
+extern uint32_t brothers_snap(uint32_t note, uint32_t scale);
+extern uint32_t brothers_duck(uint32_t depth);
+extern void brothers_lead_run(uint32_t run);
+#else
+static uint8_t brothers_mode;
+static void brothers_set(uint32_t mode) { brothers_mode = (uint8_t)mode; }
+static void brothers_poll(void) {}
+static uint32_t brothers_link(void) { return 0; }
+static void brothers_lead_tick(uint32_t off, uint32_t per) { (void)off; (void)per; }
+static uint32_t brothers_bpm(void) { return 0; }
+static void brothers_lead_set(uint32_t pat, uint32_t kick, uint32_t fx, uint32_t scale, uint32_t swing) { (void)pat; (void)kick; (void)fx; (void)scale; (void)swing; }
+static uint32_t brothers_pat(void) { return 0xFFu; }
+static uint32_t brothers_fx(void) { return 0u; }
+static uint32_t brothers_scale(void) { return 0u; }
+static uint32_t brothers_swing(void) { return 0u; }
+static uint32_t brothers_detect(const uint8_t *notes, uint32_t n) { (void)notes; (void)n; return 0u; }
+static uint32_t brothers_snap(uint32_t note, uint32_t scale) { (void)scale; return note; }
+static uint32_t brothers_duck(uint32_t depth) { (void)depth; return 256u; }
+static void brothers_lead_run(uint32_t run) { (void)run; }
+#endif
+static uint8_t bt_side, bt_patsync, bt_fxsync, bt_key, bt_last = 0xFFu;
+static volatile uint8_t bt_scale, bt_swg_on, bt_swg;            /* as a follower: the leader's key, its swing */
+static volatile uint8_t ax_acc, ax_sld, ax_up, ax_dn, ax_res, ax_swp, ax_short;      /* the bass's own punch-in pads (pfx.c, pads 9-15): accent all, slide all, octave up and down, resonance to the top, a cutoff sweep, a short decay */           /* Bluetooth sync, as a follower: the sidechain; following the leader's pattern (menu > Bluetooth) */
+static uint8_t btq[32];                                      /* the brothers' link's clock / start / stop, in order, for the main loop (as USB MIDI's) */
+static volatile uint8_t btq_w, btq_r;
+void bt_rt(uint32_t st) { if ((uint8_t)(btq_w - btq_r) < 32u) btq[btq_w++ & 31u] = (uint8_t)st; }
+static int bt_get(uint8_t *st, uint8_t *d1, uint8_t *d2)
+{
+    if (btq_r == btq_w) return 0;
+    *st = btq[btq_r++ & 31u]; *d1 = 0x55u; *d2 = 0;
+    return 1;
+}
+static volatile uint8_t clk_send;                               /* MIDI Clock: Send. Our own clock sends 24 a quarter note (six a step), play and stop send start and stop */
+static uint32_t clk_acc;
 static void seq_fire(void)
 {
     step_t s = pats[pat_idx % PATS][seq_step % STEPS];
     sq_age = 0;
     if (s.note) {
-        gate_on(s.note, (s.fl & F_ACC) && !(kn.wave & 2u), sq_prev_sld);          /* (accents off: the switch) */
-        vo.tie = s.fl & F_SLD;
+        gate_on(bt_scale ? brothers_snap(s.note, bt_scale) : s.note, ((s.fl & F_ACC) || ax_acc) && !(kn.wave & 2u), sq_prev_sld);          /* (accents off: the switch) */
+        vo.tie = (s.fl | (ax_sld ? F_SLD : 0)) & F_SLD;
     } else {
         vo.tie = 0;
         vo.gate = 0;
     }
-    sq_prev_sld = s.note ? (uint32_t)(s.fl & F_SLD) : 0u;
+    sq_prev_sld = s.note ? (uint32_t)((s.fl | (ax_sld ? F_SLD : 0)) & F_SLD) : 0u;
 }
 static void seq_next(void)                                      /* the next step; at the end of the pattern, the next one cued */
 {
@@ -120,10 +167,13 @@ static void seq_next(void)                                      /* the next step
 }
 static void seq_play(void)
 {
-    seq_step = STEPS - 1u; sq_acc = 661500u; sq_prev_sld = 0; ext_phase = 5; ext_seen = ext_in; ext_age = 0; seq_run = 1;      /* (with an outside clock the next tick is the first step) */
+    seq_step = STEPS - 1u; sq_acc = 661500u; clk_acc = 661500u; sq_prev_sld = 0; ext_phase = 5; ext_seen = ext_in; ext_age = 0;
+    if (clk_send) midi_send(0xFAu, 0, 0);
+    if (brothers_mode == 1u) brothers_lead_run(1);
+    seq_run = 1;      /* (with an outside clock the next tick is the first step) */
 }
 static void ext_seen_reset(void) { ext_seen = ext_in; ext_phase = 5; ext_age = 0; }
-static void seq_stop(void) { cue_clear(); seq_run = 0; sq_prev_sld = 0; vo.gate = 0; vo.tie = 0; }
+static void seq_stop(void) { uint32_t was = seq_run; cue_clear(); seq_run = 0; sq_prev_sld = 0; vo.gate = 0; vo.tie = 0; if (was && clk_send) midi_send(0xFCu, 0, 0); if (was && brothers_mode == 1u) brothers_lead_run(0); }
 
 /* kn.wave: bit 0 square, bit 1 accents off, 2-3 BASS (0..2), 4-5 DRIFT (0..2), 6 DIODE, 7 two poles. Old banks have bits 0-1 only. */
 #define W_BASS ((uint32_t)kn.wave >> 2 & 3u)
@@ -183,7 +233,7 @@ static int32_t core_step(void)                                  /* one step of t
 
 static void voice_render(int32_t *out, uint32_t n)
 {
-    uint32_t i;
+    uint32_t i, duck = brothers_mode == 2u && bt_side ? brothers_duck(190u) : 256u;
     while (ev_r != ev_w) {
         uint32_t v = ev_q[ev_r % EVQ];
         ev_r++;
@@ -199,15 +249,17 @@ static void voice_render(int32_t *out, uint32_t n)
                     ext_seen++;
                     if (++ext_phase >= 6u) {
                         ext_phase = 0;
-                        if (ext_age > 2000u && ext_age < 90000u) { sq_len = (sq_len * 3u + ext_age) / 4u; seq_bpm = 661500u / sq_len; }
+                        if (brothers_mode == 2u) sq_len = 661500u / seq_bpm;                                          /* the brothers' link says the tempo exactly (the main loop sets seq_bpm) */
+                        else if (ext_age > 2000u && ext_age < 90000u) { sq_len = (sq_len * 3u + ext_age) / 4u; seq_bpm = 661500u / sq_len; }
                         ext_age = 0;
                         seq_next();
                         seq_fire();
                     }
                 }
             } else {
-                uint32_t thr = (seq_step & 1u) ? 661500u - 661500u * kn.swg / 96u : 661500u + 661500u * kn.swg / 96u;      /* SWG: the odd steps come late */
+                uint32_t sg = bt_swg_on ? bt_swg : kn.swg, thr = (seq_step & 1u) ? 661500u - 661500u * sg / 96u : 661500u + 661500u * sg / 96u;      /* SWG: the odd steps come late */
                 sq_acc += seq_bpm;
+                if (clk_send || brothers_mode == 1u) { clk_acc += seq_bpm * 6u; if (clk_acc >= 661500u) { clk_acc -= 661500u; if (clk_send) midi_isr_send(0xF8u, 0, 0); if (brothers_mode == 1u) brothers_lead_tick(i, 60000000u / seq_bpm); } }
                 if (sq_acc >= thr) {
                     sq_acc -= thr;
                     sq_len = thr / seq_bpm;
@@ -229,15 +281,16 @@ static void voice_render(int32_t *out, uint32_t n)
                 vo.rs = vo.rs * 1664525u + 1013904223u; vo.dg1 = (int32_t)(vo.rs >> 16) - 32768;
             }
             vo.dr0 += (vo.dg0 - vo.dr0) >> 11; vo.dr1 += (vo.dg1 - vo.dr1) >> 11;
-            pp = vo.p + (W_DRIFT ? mulq(vo.dr0 + vo.nd0, W_DRIFT == 1u ? 72 : 170) : 0);
+            pp = vo.p + bfx_pitch + (ax_up ? 3072 : 0) - (ax_dn ? 3072 : 0) + (W_DRIFT ? mulq(vo.dr0 + vo.nd0, W_DRIFT == 1u ? 72 : 170) : 0);
             pp = pp < 0 ? 0 : pp > 126 * 256 ? 126 * 256 : pp;
             {
                 uint32_t n = (uint32_t)pp >> 8, a = NOTE_INC[n], b = NOTE_INC[n + 1u];
                 vo.incT = (uint32_t)mulq((int32_t)(a + (((b - a) >> 8) * ((uint32_t)pp & 255u))), TUNE_R[kn.tun]);          /* TUN: a little either way */
             }
-            if (vol_dec < 31u) {                                    /* VOL DEC: the volume falls, to nothing or to a floor */
-                int32_t fl = vol_dec < 16u ? 0 : (int32_t)(vol_dec - 15u) << 20;
-                vo.va += mulq(fl - vo.va, VD_G[vol_dec < 15u ? vol_dec : 15u]);
+            if (vol_dec < 31u || ax_short) {                                    /* VOL DEC: the volume falls, to nothing or to a floor */
+                uint32_t vdv = ax_short ? 4u : vol_dec;
+                int32_t fl = vdv < 16u ? 0 : (int32_t)(vdv - 15u) << 20;
+                vo.va += mulq(fl - vo.va, VD_G[vdv < 15u ? vdv : 15u]);
                 tg = (tg * (vo.va >> 9)) >> 15;
             } else vo.va = 1 << 24;
             { int32_t vr = vo.gate ? (accx ? 9000 : ATK_G[kn.atk]) : REL_RATE;          /* two poles one after the other: the volume starts and ends with no corner, so no tick */
@@ -251,6 +304,7 @@ static void voice_render(int32_t *out, uint32_t n)
             if (accx && swp_on) amt += mulq(amt + 30, 8192 + (vo.acc_cap >> 1) + (int32_t)kn.acc * 1000);
             idx = (int32_t)kn.cut * 7 + mulq(e, amt);
             if (W_DRIFT) idx += mulq(vo.dr1 + vo.nd1, W_DRIFT == 1u ? 24 : 64);
+            if (ax_swp) { int32_t t = (int32_t)(vo.tick >> 8 & 255u); t = t < 128 ? t : 255 - t; idx += (t - 64) * 2; }          /* SWEEP: the cutoff goes up and down */
             if (idx > 255) idx = 255;
             if (idx < 0) idx = 0;
             qi = idx << 8;
@@ -266,7 +320,7 @@ static void voice_render(int32_t *out, uint32_t n)
             vo.ci += (qi - vo.ci) / 3;                       /* the cutoff does not jump when a note starts: about half a millisecond to get there (no tick) */
             idx = vo.ci >> 8;
             vo.idxc = idx; vo.fmk = (int32_t)kn.fm * (int32_t)kn.fm;
-            k = RES_K[kn.res];
+            k = RES_K[ax_res ? 31u : kn.res];                      /* RES MAX: the resonance to the top */
             if (W_DIODE) k -= k >> 2;                              /* a diode ladder sings a little less */
             vo.drv = kn.drv;
             if (kn.hir) k *= 2;                                     /* HI RES: twice the feedback, so it rings by itself */
@@ -288,6 +342,7 @@ static void voice_render(int32_t *out, uint32_t n)
         vo.dcs += (s * 16 - vo.dcs) >> 9;                       /* a DC blocker: the clipping is lopsided on a resonant saw */
         s -= mulq(vo.dcs >> 4, vo.vs * 4 > 32768 ? 32768 : vo.vs * 4);          /* (the DC it takes off fades with the volume: it used to stay, and when a note ended it was left on its own, a small step and a bump: the tick) */
         s = s * (24 + (int32_t)kn.lvl) / 24;                    /* LEVEL */
+        s = (s * (int32_t)duck) >> 8;                           /* the sidechain: the leader's kicks pull the bass down and let go */
         vo.fmy = s;
         if (s > 32000) s = 32000;
         if (s < -32000) s = -32000;

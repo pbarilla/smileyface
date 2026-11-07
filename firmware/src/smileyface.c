@@ -29,6 +29,8 @@
 #define FM1_TICKS_PER_US 24u
 static uint32_t fm1_ticks(void) { return 0; }
 #endif
+#define BFX_POOL __attribute__((section(".pool")))            /* the shared punch-in effects (bfx.c): the same code on Drumlab */
+#include "bfx.c"
 #include "voice.c"
 #include "fx.c"
 #include "bank.c"
@@ -37,7 +39,9 @@ static void app_audio(int32_t *out, uint32_t n)
 {
     uint32_t t0 = fm1_ticks(), dt;
     voice_render(out, n);
-    fx_process(out, n);
+    /* fx_process(out, n);        the old FX rack (delay / drive / crush units) is switched off: the FX button is the punch-in layer now (pfx.c) */
+    { static uint32_t t60; t60 += n; if (t60 >= 735u) { t60 -= 735u; bfx_tick(); } }
+    if (bfx_busy() || bfx_mask) bfx_run(out, n, 661500u / (seq_bpm ? seq_bpm : 126u));
     dt = (uint32_t)(fm1_ticks() - t0);
     if (dt > cpu_max) cpu_max = dt;
 }
@@ -50,6 +54,7 @@ static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) act_ms 
 #include "views.c"
 #include "wonder.c"
 #include "rack.c"
+#include "pfx.c"
 #include "manual.c"
 #include "menu.c"
 
@@ -64,7 +69,8 @@ static void paint(uint32_t y0, uint32_t y1)                     /* rows y0 .. y1
         if (man_on) scene_man();
         else if (pierre_on && !pick_on && !fx_on && !menu_on) scene_pierre();
         else if (pick_on) scene_pick();
-        else if (fx_on && !menu_on) scene_fx();
+        else if (pfx_on && !menu_on) scene_pfx();
+        /* else if (fx_on && !menu_on) scene_fx();      the old rack screen */
         else if (menu_on) { if (y0 < Y_HDR) scene_head(); if (y0 + h > Y_HDR && y0 < Y_LOW - 4u) { if (view_now == V_STEPS) scene_steps(); else if (view_now == V_FLY) scene_fly(); else if (view_now == V_WALK) scene_walk(); else scene_play(); } if (y0 + h > Y_LOW - 4u) scene_low(); scene_menu(); }
         else {
             if (y0 < Y_HDR) scene_head();
@@ -103,6 +109,7 @@ static void pat_chain(uint32_t p)                               /* a key in PLAY
 static void app_main(void)
 {
     uint32_t fake_b = 0, keys, prev = 0, btn_was = 0, hb_ms = 0, weird_next = 16000u, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
+#define bt_pack() do { cfg.pad[0] = (uint8_t)((brothers_mode & 3u) | bt_side << 2 | bt_patsync << 3 | bt_fxsync << 4 | bt_key << 5); cfg_dirty = 1; t_change = fm1_ms; } while (0)       /* the Bluetooth settings, kept with the others */
     uint32_t ext_ms = 0, tap_last = 0, tap_n = 0, tap_k = 0, tap_iv[4] = {0}, sel_was = 0, sel_t0 = 0, sel_used = 0;
     uint32_t home_was = 0, home_t0 = 0, home_used = 0, edit_was = 0, edit_t0 = 0, edit_used = 0, sel_was2 = 0, sel_rot = 0, sel_keyed = 0;
     int32_t e;
@@ -115,7 +122,15 @@ static void app_main(void)
     splash_flyer();
 #endif
     bank_load();
-    if (settings_load(&cfg, sizeof cfg) != 0 || cfg.magic != SET_OK) {                  /* a new device, or a new firmware */ cfg.slot = 0; cfg.oct = 1; cfg.view = 0; cfg.magic = SET_OK; }
+    if (settings_load(&cfg, sizeof cfg) != 0 || cfg.magic != SET_OK) {                  /* a new device, or a new firmware */
+        struct { uint8_t slot, oct, view, magic; } old;                                  /* the settings from before the MIDI clock: four bytes */
+        if (settings_load(&old, sizeof old) == 0 && old.magic == SET_OK) { cfg.slot = old.slot; cfg.oct = old.oct; cfg.view = old.view; }
+        else { cfg.slot = 0; cfg.oct = 1; cfg.view = 0; }
+        cfg.magic = SET_OK; cfg.clk = CLK_DEF;
+    }
+    if (cfg.clk > 2u) cfg.clk = CLK_DEF;
+    clk_send = cfg.clk == 1u;
+    bt_side = cfg.pad[0] >> 2 & 1u; bt_patsync = cfg.pad[0] >> 3 & 1u; bt_fxsync = cfg.pad[0] >> 4 & 1u; bt_key = cfg.pad[0] >> 5 & 1u;                   /* cfg.pad[0]: the Bluetooth sync: bits 0-1 the mode, 2 the sidechain, 3 follow patterns */
     if (cfg.slot >= SLOTS) cfg.slot = 0;
     if (cfg.oct > 3u) cfg.oct = 1;
     view_now = cfg.view < VIEWS ? cfg.view : 0u;
@@ -135,9 +150,29 @@ static void app_main(void)
         }
         {
             uint8_t st, d1, d2;
-            while (midi_get(&st, &d1, &d2)) {
+            { static uint32_t paused;                                                                                                        /* the installer is talking: the Bluetooth radio goes quiet (it makes the FM-1 miss requests), and comes back 20 s after */
+          if (ota_hit_ms && brothers_mode && !paused) { paused = brothers_mode; brothers_set(0); }
+          if (paused && fm1_ms - ota_hit_ms > 20000u) { brothers_set(paused); paused = 0; ota_hit_ms = 0; } }
+            if (ota_back) { ota_back = 0; redraw |= 7; pt_y = pt_end = 0; }                                                     /* the installer gave up and left its message on the screen: paint it all again */
+            { static uint8_t bt_booted; if (!bt_booted && fm1_ms > 1500u) { bt_booted = 1; if ((cfg.pad[0] & 3u) && (cfg.pad[0] & 3u) <= 2u) brothers_set(cfg.pad[0] & 3u); } }      /* the mode it was left in */
+            brothers_poll();                                                                                                   /* a follower: the leader's packets into clock ticks */
+            if (brothers_mode == 1u) {                                                                                           /* the leader: the pattern playing (no drums: no kicks, no punch-ins), its key and swing */
+                static uint32_t sc_ms, sc_val;
+                if (fm1_ms - sc_ms > 300u) { uint8_t nt[STEPS]; uint32_t i2; sc_ms = fm1_ms; for (i2 = 0; i2 < STEPS; i2++) nt[i2] = pats[pat_idx % PATS][i2].note; sc_val = brothers_detect(nt, STEPS); }
+                brothers_lead_set(pat_idx, 0, pfx_mask & 0xFFu, sc_val, kn.swg);
+            }
+            else if (brothers_mode == 2u && bt_patsync && seq_run) {                                                            /* a follower: the leader's pattern, at the end of this one */
+                uint32_t p = brothers_pat();
+                if (p != 0xFFu && p != bt_last) { bt_last = (uint8_t)p; if (p < PATS && p != pat_idx) pat_pick(p); }
+            } else if (brothers_mode != 2u) bt_last = 0xFFu;
+            bt_scale = (uint8_t)(brothers_mode == 2u && bt_key ? brothers_scale() : 0u);                                         /* a follower: the leader's key, punch-in effects and swing */
+            bfx_mask = (pfx_mask & 0xFFu) | (brothers_mode == 2u && bt_fxsync ? brothers_fx() & 0xFFu : 0u);                       /* the shared pads: ours, and the leader's */
+            ax_acc = pfx_mask >> 8 & 1u; ax_sld = pfx_mask >> 9 & 1u; ax_up = pfx_mask >> 10 & 1u; ax_dn = pfx_mask >> 11 & 1u; ax_res = pfx_mask >> 12 & 1u; ax_swp = pfx_mask >> 13 & 1u; ax_short = pfx_mask >> 14 & 1u;
+            bt_swg_on = (uint8_t)(brothers_mode == 2u && bt_patsync && brothers_pat() != 0xFFu); bt_swg = (uint8_t)(brothers_swing() > 40u ? 40u : brothers_swing());
+            while (midi_get(&st, &d1, &d2) || bt_get(&st, &d1, &d2)) {
                 uint32_t ty = st & 0xF0u;
-                if (st == 0xF8u) { ext_ms = fm1_ms; ext_in++; if (!ext_on) { ext_on = 1; ext_in = 1; ext_seen_reset(); } }          /* MIDI clock */
+                if (st >= 0xF8u && (d1 == 0x55u ? brothers_mode != 2u : cfg.clk != 2u)) continue;                                                                          /* the clock and transport: only when MIDI Clock is Follow */
+                if (st == 0xF8u) { if (d1 == 0x55u) { uint32_t nb = brothers_bpm(); if (nb >= 30u && nb <= 255u) seq_bpm = nb; } ext_ms = fm1_ms; ext_in++; if (!ext_on) { ext_on = 1; ext_in = 1; ext_seen_reset(); } }          /* MIDI clock */
                 else if (st == 0xFAu) { seq_play(); redraw |= 7; }                                                                  /* start */
                 else if (st == 0xFBu) { seq_run = 1; redraw |= 7; }                                                                 /* continue */
                 else if (st == 0xFCu) { seq_stop(); redraw |= 7; }                                                                  /* stop */
@@ -147,6 +182,7 @@ static void app_main(void)
                     if (d1 == 102u) { if (d2 >= 64u && !seq_run) seq_play(); else if (d2 < 64u && seq_run) seq_stop(); redraw |= 7; }
                     else if (d1 == 103u && d2 >= 30u) { seq_bpm = d2 * 2u; dirty = 1; t_change = fm1_ms; redraw |= 1; }
                     else if (d1 == 104u) { slot_save(); dirty = 0; }
+                    else if (d1 == 119u) { bt_demo_load(); dirty = 0; redraw |= 7; }                                                    /* test: the Bluetooth demo */
                     else if (d1 == 105u) { undo_save(); random_pattern(); dirty = 1; t_change = fm1_ms; redraw |= 7; }
                     else if (d1 == 106u && d2 < SLOTS) { if (dirty) slot_save(); dirty = 0; slot_load(d2); cfg.slot = (uint8_t)d2; cfg_dirty = 1; t_change = fm1_ms; redraw |= 7; }
                     else if (d1 == 112u) {                                                                                     /* test: one weird thing on demand */
@@ -214,12 +250,14 @@ static void app_main(void)
         }
         if (home_now && !home_used && fm1_ms - home_t0 >= 600u && !pick_on && !man_on && !menu_on) { home_used = 1; pick_on = 1; pick_sel = slot_cur; redraw |= 7; }     /* hold HOME: the projects */
         if (!home_now && home_was && !home_used) {                                                        /* tap HOME: leave what is open, open the project in the frame, or the next view */
-            if (menu_on) { menu_on = 0; dice_t0 = 0; dice_prog = 0; }
+            if (menu_on == 4u) menu_on = 1;                                                           /* back from the Bluetooth page */
+            else if (menu_on) { menu_on = 0; dice_t0 = 0; dice_prog = 0; }
             else if (man_on) { man_on = 0; man_lock = 0; }
             else if (pick_on) {
                 if (dirty) slot_save();
                 dirty = 0; slot_load(pick_sel); cfg.slot = (uint8_t)pick_sel; cfg_dirty = 1; t_change = fm1_ms; pick_on = 0;
             }
+            else if (pfx_on) pfx_close();
             else if (fx_on) fx_on = 0;
             else { view_now = (view_now + 1u) % VIEWS; cfg.view = (uint8_t)view_now; cfg_dirty = 1; t_change = fm1_ms; }
             redraw |= 7;
@@ -227,7 +265,7 @@ static void app_main(void)
         home_was = home_now;
         if (b & (1u << BTN_GLO) && home_now && !menu_on) { menu_on = 1; menu_sel = 0; man_on = 0; man_lock = 0; pick_on = 0; home_used = 1; redraw |= 7; b &= ~(1u << BTN_GLO); }       /* HOME first, then GLO: the menu */
         if (b & (1u << BTN_GLO) && !man_on && !menu_on) {                                                              /* the manual, at the chapter for where you are */
-            man_open(pick_on ? MC_PROJ : fx_on ? MC_FX : view_now == V_STEPS ? MC_STEPS : view_now == V_PLAY ? MC_PLAY : MC_QUICK, 0u);          /* (the odd views are not explained: try it and find out) */
+            man_open(pick_on ? MC_PROJ : pfx_on ? MC_FX : view_now == V_STEPS ? MC_STEPS : view_now == V_PLAY ? MC_PLAY : MC_QUICK, 0u);          /* (the odd views are not explained: try it and find out) */
             redraw |= 7;
             b &= ~(1u << BTN_GLO);
         }
@@ -237,9 +275,27 @@ static void app_main(void)
             for (k = 0; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
             fm1_enc_take(ENC_ALGORITHM);
             if (menu_on == 1u) {
-                if (e) { int32_t v = (int32_t)menu_sel + (e > 0 ? 1 : -1); menu_sel = (uint32_t)(v < 0 ? 0 : v > 2 ? 2 : v); redraw |= 7; }
-                if (b & (1u << BTN_OCT_UP)) { if (menu_sel == 2u) { pierre_on ^= 1u; menu_on = 0; } else { menu_on = 2u + menu_sel; dice_t0 = dice_prog = dice_armed = 0; } redraw |= 7; }
+                { static uint32_t bt_t; if (fm1_ms - bt_t > 300u) { bt_t = fm1_ms; redraw |= 7; } }                                   /* the Bluetooth line moves by itself */
+                if (e) { int32_t v = (int32_t)menu_sel + (e > 0 ? 1 : -1); menu_sel = (uint32_t)(v < 0 ? 0 : v > 4 ? 4 : v); redraw |= 7; }
+                if (b & (1u << BTN_OCT_UP)) { if (menu_sel == 4u) { pierre_on ^= 1u; menu_on = 0; }
+                    else if (menu_sel == 3u) { menu_on = 4u; bt_sel = 0; }                                                                       /* the Bluetooth page */
+                    else if (menu_sel == 2u) { cfg.clk = (uint8_t)((cfg.clk + 1u) % 3u); clk_send = cfg.clk == 1u; if (cfg.clk != 2u) ext_on = 0; cfg_dirty = 1; t_change = fm1_ms; }          /* MIDI Clock: off, send, follow */
+                    else { menu_on = 2u + menu_sel; dice_t0 = dice_prog = dice_armed = 0; } redraw |= 7; }
                 if (b & (1u << BTN_OCT_DOWN)) { menu_on = 0; redraw |= 7; }
+            } else if (menu_on == 4u) {                                                                       /* Bluetooth: Sync, (Status), Sidechain, Patterns */
+                { static uint32_t bt_t; if (fm1_ms - bt_t > 300u) { bt_t = fm1_ms; redraw |= 7; } }
+                if (e) { int32_t v = (int32_t)bt_sel + (e > 0 ? 1 : -1); bt_sel = (uint32_t)(v < 0 ? 0 : v > 5 ? 5 : v); redraw |= 7; }
+                if (b & (1u << BTN_OCT_UP)) {
+                    if (bt_sel == 0u) brothers_set(((uint32_t)brothers_mode + 1u) % 3u);
+                    else if (bt_sel == 1u) bt_side ^= 1u;
+                    else if (bt_sel == 2u) bt_patsync ^= 1u;
+                    else if (bt_sel == 3u) bt_fxsync ^= 1u;
+                    else if (bt_sel == 4u) bt_key ^= 1u;
+                    else { bt_demo_load(); menu_on = 0; dirty = 0; }                                                                 /* Demo: the locked project */
+                    if (bt_sel != 5u) bt_pack();
+                    redraw |= 7;
+                }
+                if (b & (1u << BTN_OCT_DOWN)) { menu_on = 1; redraw |= 7; }
             } else if (menu_on == 2u) {
                 if (b & (1u << BTN_OCT_UP)) { factory_reset(); dirty = cfg_dirty = 0; menu_on = 0; redraw |= 7; }
                 else if (b & (1u << BTN_OCT_DOWN)) { menu_on = 1; redraw |= 7; }
@@ -270,7 +326,15 @@ static void app_main(void)
             if (fm1_ms - last_draw >= 40u) { paint(0, 240); last_draw = fm1_ms; }
             continue;
         }
-        if (b & (1u << BTN_FX) && !pick_on) { fx_on ^= 1u; pt_y = pt_end = 0; redraw |= 7; }                                  /* FX: the rack */
+        if (b & (1u << BTN_FX) && !pick_on) { if (pfx_on) pfx_close(); else pfx_on = 1; redraw |= 7; }                          /* FX: the punch-in effects (the old rack: fx_on ^= 1u) */
+        if (pfx_on && !menu_on) {                                                                                         /* the layer: the white keys are pads */
+            pfx_input(down, up);
+            if (b & (1u << BTN_PLAY)) { if (seq_run) seq_stop(); else seq_play(); }
+            edit_was = edit_now; sel_was = sel_now; sel_was2 = sel_now;
+            fm1_led_key(BTN_PLAY, seq_run); fm1_led_key(BTN_FX, 1);
+            if (fm1_ms - last_draw >= 40u) { anim_t = fm1_ms / 24u; paint(0, 240); last_draw = fm1_ms; }
+            continue;
+        }
         if (edit_now && !edit_was) { edit_t0 = fm1_ms; edit_used = 0; }
         if (pick_on && edit_now && !edit_used && fm1_ms - edit_t0 >= 600u) {                              /* hold EDIT on a project: it goes back to the start */
             edit_used = 1; if (pick_sel == slot_cur) undo_save(); bank.s[pick_sel].used = 0; bank_flush();
@@ -432,7 +496,7 @@ static void app_main(void)
         fm1_led_key(BTN_SEL, view_now != V_PLAY && (PAT[cur].fl & F_SLD));
         fm1_led_glow(BTN_SAVE, dirty);
         fm1_led_glow(BTN_REC, undo_has); fm1_led_glow(BTN_SEL, 0); fm1_led_glow(BTN_EDIT, 0);
-        fm1_led_key(BTN_FX, fx_on); fm1_led_glow(BTN_FX, rack.on && fx_any());
+        fm1_led_key(BTN_FX, pfx_on); fm1_led_glow(BTN_FX, pfx_mask != 0u);
         fm1_led_key(BTN_OCT_DOWN, cfg.oct < 1u);
         fm1_led_key(BTN_OCT_UP, cfg.oct > 1u);
         {                                                       /* the keys: the cursor's note glows, the playing note is lit; in PLAY the patterns, in FX the switches */

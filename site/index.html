@@ -40,6 +40,13 @@
 
   section { padding:44px 0; }
   h2 { margin:0 0 20px; font:900 clamp(28px, 6vw, 44px)/1 "Arial Black", Impact, sans-serif; letter-spacing:-.03em; text-transform:uppercase; color:var(--y); text-shadow:3px 3px 0 var(--pink); }
+  .bros { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; padding:6px 0 4px; }
+  .bro { display:block; padding:14px 16px; background:var(--panel); border:3px solid #000; box-shadow:5px 5px 0 var(--cy); color:var(--ink); text-decoration:none; }
+  .bro b { display:block; font:900 16px "Arial Black", Impact, sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--y); }
+  .bro span { color:var(--dim); font-size:15px; font-weight:700; }
+  .bro.me { box-shadow:5px 5px 0 var(--pink); } .bro.me b { color:var(--pink); }
+  a.bro:hover { transform:translate(3px, 3px); box-shadow:2px 2px 0 var(--cy); }
+  @media (max-width:700px) { .bros { grid-template-columns:1fr; } }
   .shots { display:grid; grid-template-columns:repeat(5, 1fr); gap:14px; padding:6px 0 18px; }
   .shots figure { margin:0; transition:transform .12s; }
   .shots figure:nth-child(odd) { transform:rotate(-1.6deg); } .shots figure:nth-child(even) { transform:rotate(1.3deg); }
@@ -123,6 +130,18 @@
       <p class="plain"><em>We were jumping up and down, literally bouncing off the walls, shouting This is what we want! This is what we want!</em></p>
     </blockquote>
     <p></p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The three brothers</h2>
+    <div class="bros">
+      <a class="bro" href="../chipbox/"><b>Chipbox</b><span>Chiptune tracker. Over 35 sound chips.</span></a>
+      <div class="bro me"><b>Smileyface</b><span>This one. An acid bass line.</span></div>
+      <a class="bro" href="../drumlab/"><b>Drumlab</b><span>Drums, and a PO-32.</span></a>
+    </div>
+    <p style="margin-top:14px">They get along: over Bluetooth one of them leads and the others follow. Tempo, kicks, patterns and effects. <a href="../drumlab/manual/sync/">Here's how</a>.</p>
   </div>
 </section>
 
