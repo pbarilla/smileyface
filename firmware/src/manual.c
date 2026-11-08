@@ -50,7 +50,7 @@ static const mpage_t MP_MENU[] = {
     {"Pierre, 1985", M_OCTU | M_SMALL, "Choose it to change the screen. Choose it again to change it back."},
 };
 static const mpage_t MP_BT[] = {
-    {"Sync", M_OCTU | M_SMALL, "Set Sync to Lead on one FM-1 and to Follow on the others. Press OCT+ to change it. It is always Off after power-up."},
+    {"Sync", M_OCTU | M_SMALL, "Open Brothers Link in the menu. Set Sync to Lead on one FM-1 and to Follow on the others. Press OCT+ to change it. It is always Off after power-up."},
     {"Options", M_OCTU | M_SMALL, "Sidechain ducks the bass on every kick from the leader. Patterns and Key follow what the leader plays."},
     {"Punch-in FX", M_FX | M_SMALL, "Hold pads 1 to 8 on the leader and every follower with Punch-in FX On plays them too."},
     {"Demo", M_OCTU | M_SMALL, "Demo loads a locked acid line to play along. Nothing in it is saved. Open any project to leave it."},
@@ -59,7 +59,7 @@ static const mpage_t MP_BT[] = {
 static const mchap_t MCH[] = {
     MC("Quick Start", RGB(160, 255, 0), MP_QUICK), MC("Steps", RGB(255, 238, 0), MP_STEPS), MC("Knobs", RGB(255, 36, 170), MP_KNOBS),
     MC("Play", RGB(0, 226, 255), MP_PLAY), MC("Projects", RGB(255, 238, 0), MP_PROJ), MC("FX", RGB(255, 36, 170), MP_FX),
-    MC("Menu", RGB(0, 226, 255), MP_MENU), MC("Bluetooth", RGB(160, 255, 0), MP_BT),
+    MC("Menu", RGB(0, 226, 255), MP_MENU), MC("Brothers Link", RGB(160, 255, 0), MP_BT),
 };
 #define MCHN (sizeof MCH / sizeof MCH[0])
 enum { MC_QUICK, MC_STEPS, MC_KNOBS, MC_PLAY, MC_PROJ, MC_FX, MC_MENU, MC_BT };

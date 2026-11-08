@@ -16,8 +16,8 @@
  *   FX               an effect after the bass (ALGORITHM: none, then each in a row; HOME: back)
  *   OCT- OCT+        octave      SAVE   save (it also saves 2 s after an edit, when stopped)      MASTER   volume
  *   USB-MIDI         clock, start, stop and continue are followed (the tempo turns cyan); notes play the voice (velocity 100 and up = accent);
- *                    CC 102 play / stop, 103 tempo / 2, 104 save, 105 random pattern, 106 open project 0..11, 110 factory reset, 111 roll the dice, 112 a weird thing (test), 114 a button press (test), 117 rack on / off (test), 118 a unit in a slot (test), 108 pattern 0..15 (cued while it plays),
- *                    74 75 71 72 = CUT ENV RES DEC. The device sends CC 100 = CPU % (worst block since boot), CC 119 / 120 / 121 = slowest screen / drawing / main loop turn in ms, CC 101 = view | 16 unsaved | 32 playing | 64 projects,
+ *                    CC 102 play / stop, 103 tempo / 2, 104 save, 105 random pattern, 106 open project 0..11, 110 factory reset and 111 roll the dice (both armed: CC 110 = 127, then 110 or 111 = 1 within 3 s), 112 a weird thing (test), 114 a button press (test), 117 rack on / off (test), 118 a unit in a slot (test), 108 pattern 0..15 (cued while it plays),
+ *                    74 75 71 72 = CUT ENV RES DEC. The device sends CC 100 = CPU % (worst block since boot), CC 119 / 88 / 89 = slowest screen / drawing / main loop turn in ms, CC 101 = view | 16 unsaved | 32 playing | 64 projects,
  *                    CC 107 = the open project, CC 109 = the pattern, CC 116 = the switch bits (1 square, 2 accents off, 4 and 8 BASS, 16 and 32 DRIFT, 64 DIODE). CC 127 sets those bits (test)
  *
  * Integers only: no float, no 64-bit division. tests/host.c runs this file on a computer. */
@@ -42,6 +42,7 @@ static void app_audio(int32_t *out, uint32_t n)
     /* fx_process(out, n);        the old FX rack (delay / drive / crush units) is switched off: the FX button is the punch-in layer now (pfx.c) */
     { static uint32_t t60; t60 += n; if (t60 >= 735u) { t60 -= 735u; bfx_tick(); } }
     if (bfx_busy() || bfx_mask) bfx_run(out, n, 661500u / (seq_bpm ? seq_bpm : 126u));
+    else bfx_rec(out, n);
     dt = (uint32_t)(fm1_ticks() - t0);
     if (dt > cpu_max) cpu_max = dt;
 }
@@ -108,7 +109,7 @@ static void pat_chain(uint32_t p)                               /* a key in PLAY
 
 static void app_main(void)
 {
-    uint32_t fake_b = 0, keys, prev = 0, btn_was = 0, hb_ms = 0, mid_ms = 0, weird_next = 16000u, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
+    uint32_t fake_b = 0, keys, prev = 0, btn_was = 0, hb_ms = 0, mid_ms = 0, arm_ms = 0, weird_next = 16000u, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
 #define bt_pack() do { cfg.pad[0] = (uint8_t)((brothers_mode & 3u) | bt_side << 2 | bt_patsync << 3 | bt_fxsync << 4 | bt_key << 5); cfg_dirty = 1; t_change = fm1_ms; } while (0)       /* the Bluetooth settings, kept with the others */
     uint32_t ext_ms = 0, tap_last = 0, tap_n = 0, tap_k = 0, tap_iv[4] = {0}, sel_was = 0, sel_t0 = 0, sel_used = 0;
     uint32_t home_was = 0, home_t0 = 0, home_used = 0, edit_was = 0, edit_t0 = 0, edit_used = 0, sel_was2 = 0, sel_rot = 0, sel_keyed = 0;
@@ -199,8 +200,8 @@ static void app_main(void)
                     else if (d1 == 117u) { rack.on = d2 ? 1u : 0u; dirty = 1; t_change = fm1_ms; redraw |= 7; }                    /* test: the rack on / off */
                     else if (d1 == 118u && (d2 >> 2 & 3u) < FXN && (d2 & 3u) < FX_KINDS) { fx_set(d2 >> 2 & 3u, d2 & 3u, d2 >> 4 & 3u); dirty = 1; t_change = fm1_ms; redraw |= 7; }     /* test: put a unit in a slot (type 0 none, 1 delay, 2 drive, 3 crush; slot * 4; type + 16 * flavour) */
                     else if (d1 == 114u) fake_b |= 1u << (d2 & 15u);                                                           /* test: a button press */
-                    else if (d1 == 110u) { factory_reset(); dirty = cfg_dirty = 0; redraw |= 7; }
-                    else if (d1 == 111u) { roll_dice(); dirty = 0; redraw |= 7; }
+                    else if (d1 == 110u) { if (d2 == 127u) arm_ms = fm1_ms | 1u; else if (d2 == 1u && arm_ms && fm1_ms - arm_ms < 3000u) { arm_ms = 0; factory_reset(); dirty = cfg_dirty = 0; redraw |= 7; } }          /* test: Factory Reset: CC 110 = 127, then CC 110 = 1 within 3 s (a controller's stray CC cannot wipe projects) */
+                    else if (d1 == 111u) { if (d2 == 1u && arm_ms && fm1_ms - arm_ms < 3000u) { arm_ms = 0; roll_dice(); dirty = 0; redraw |= 7; } }          /* test: Roll The Dice, armed the same way (CC 110 = 127 first) */
                     else if (d1 == 108u && d2 < PATS) { pat_chain(d2); redraw |= 7; }
                     else if (d1 == 74u || d1 == 75u || d1 == 71u || d1 == 72u) {                                              /* CUT ENV RES DEC from a controller (recorded as knob turns) */
                         uint8_t *kp = d1 == 74u ? &kn.cut : d1 == 75u ? &kn.env : d1 == 71u ? &kn.res : &kn.dec;
@@ -218,10 +219,10 @@ static void app_main(void)
                 midi_send(0xB0u, 109u, pat_idx);
                 midi_send(0xB0u, 116u, kn.wave & 127u);                                                                     /* the switch bits: 1 square, 2 accents off, 4-8 BASS, 16-32 DRIFT, 64 DIODE (a check) */
                 midi_send(0xB0u, 119u, paint_max > 127u ? 127u : paint_max);
-                midi_send(0xB0u, 120u, draw_max > 127u ? 127u : draw_max);
-                midi_send(0xB0u, 121u, loop_max > 127u ? 127u : loop_max);
+                midi_send(0xB0u, 88u, draw_max > 127u ? 127u : draw_max);
+                midi_send(0xB0u, 89u, loop_max > 127u ? 127u : loop_max);
 #ifndef SMILEY_HOST
-                { uint32_t fr = fm1_in.frames; midi_send(0xB0u, 122u, ((fr - fr_was) >> 3) > 127u ? 127u : (fr - fr_was) >> 3); fr_was = fr; }               /* panel scans a second / 8: about 113 */
+                { uint32_t fr = fm1_in.frames; midi_send(0xB0u, 90u, ((fr - fr_was) >> 3) > 127u ? 127u : (fr - fr_was) >> 3); fr_was = fr; }               /* panel scans a second / 8: about 113 */
 #endif
                 paint_max = draw_max = loop_max = 0;
             }

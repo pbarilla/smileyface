@@ -69,7 +69,7 @@ static void scene_menu(void)
     const int32_t x = 6, y = 36, w = 228;
     uint32_t i;
     if (menu_on == 1u) {
-        const char *const IT[5] = {"Factory Reset", "Roll The Dice", cfg.clk == 1u ? "MIDI Clock: Send" : cfg.clk == 2u ? "MIDI Clock: Follow" : "MIDI Clock: Off", "Bluetooth", "Pierre, 1985"};
+        const char *const IT[5] = {"Factory Reset", "Roll The Dice", cfg.clk == 1u ? "MIDI Clock: Send" : cfg.clk == 2u ? "MIDI Clock: Follow" : "MIDI Clock: Off", "Brothers Link", "Pierre, 1985"};
         const int32_t h = 188;
         menu_win("Menu", C_Y, h);
         for (i = 0; i < 5u; i++) {
@@ -85,7 +85,7 @@ static void scene_menu(void)
         const char *const IT[7] = {MODE[brothers_mode % 3u], STAT[brothers_mode % 3u][brothers_link() % 3u], bt_side ? "Sidechain: On" : "Sidechain: Off", bt_patsync ? "Patterns: On" : "Patterns: Off",
                                    bt_fxsync ? "Punch-in FX: On" : "Punch-in FX: Off", bt_key ? "Key: On" : "Key: Off", bt_locked ? "Demo: Locked" : "Demo: Load"};
         const int32_t h = 204;
-        menu_win("Bluetooth", C_Y, h);
+        menu_win("Brothers Link", C_Y, h);
         for (i = 0; i < 7u; i++) {
             int32_t ly = y + 30 + (int32_t)i * 20;
             uint32_t row = i == 0u ? 0u : i == 1u ? 9u : i - 1u;                       /* the status line is only shown */

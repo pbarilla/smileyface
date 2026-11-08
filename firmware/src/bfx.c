@@ -9,7 +9,7 @@
  *   7 CRUSH  the samples held three at a time and the low bits dropped
  *   8 GATE   the sound chopped at the sixteenths
  * The host defines BFX_POOL (where the big buffers go) before including this, calls bfx_tick() at 60 Hz and bfx_run(out, n, step) with the stereo mix (it
- * reads the left side, writes both) while anything is on (bfx_busy()), and sets bfx_mask from the pads. Integers only. */
+ * reads the left side, writes both) while anything is on (bfx_busy()) and bfx_rec(out, n) otherwise (the repeat needs the last sixteenth), and sets bfx_mask from the pads. Integers only. */
 #define BFX_STOP 1u
 #define BFX_REP 2u
 #define BFX_LPF 4u
@@ -52,6 +52,16 @@ static void bfx_tick(void)                      /* 60 Hz: the ramps */
     if (m & BFX_VERB) bfx_verb_tail = 200u; else if (bfx_verb_tail) bfx_verb_tail--;
 }
 static uint32_t bfx_busy(void) { return bfx_mask || bfx_lp_i || bfx_hp_i || bfx_echo_tail || bfx_verb_tail || bfx_speed < 256 || bfx_g != 256; }
+
+/* nothing is on: still keep the dry mix, so a REPEAT pressed now has the last sixteenth to loop */
+static void bfx_rec(const int32_t *out, uint32_t n)
+{
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        int32_t v = out[2u * i];
+        bfx_rb[bfx_rbw++ & (BFX_RB - 1u)] = (int16_t)(v > 32767 ? 32767 : v < -32767 ? -32767 : v);
+    }
+}
 
 /* out: n stereo frames (left read, both written); step: samples in a sixteenth note */
 static void bfx_run(int32_t *out, uint32_t n, uint32_t step)
