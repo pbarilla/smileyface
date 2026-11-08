@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+/* what the app provides: MIDI out, the shared effects' pitch offset, the key snap (stand-ins for the test) */
+static void midi_send(uint32_t a, uint32_t b, uint32_t c) { (void)a; (void)b; (void)c; }
+static void midi_isr_send(uint32_t a, uint32_t b, uint32_t c) { (void)a; (void)b; (void)c; }
+static int32_t bfx_pitch;
 #include "../firmware/src/voice.c"
 #define __attribute__(x)                                /* (the pool is the device's) */
 #include "../firmware/src/fx.c"

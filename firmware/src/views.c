@@ -519,13 +519,13 @@ static void slot_pack(slot_t *sl)                               /* what plays, a
 static uint8_t bt_locked;                                       /* the Bluetooth demo is on: a locked project, in memory only (opening a project ends it) */
 static void slot_load(uint32_t i)
 {
-    bt_locked = 0;
+    bt_locked = 0; demo_loop = i == 0u;
     slot_apply(slot_get(i));
     slot_cur = i;
 }
 static void slot_save(void)
 {
-    if (bt_locked) return;
+    if (bt_locked || slot_cur == 0u) return;                    /* the demos are never saved */
     slot_pack(&bank.s[slot_cur]);
     bank_flush();
 }
@@ -547,7 +547,8 @@ static void scene_pick(void)
         utoa3(nm, i + 1u);
         text_at(x + 5, y + 4, nm, i == pick_sel ? C_Y : C_RING);
         for (a = 0; a < n && a < 16u; a++) cv_rect(x + 30 + (int32_t)(a % 8u) * 4, y + 7 + (int32_t)(a / 8u) * 4, 3, 3, C_CY);      /* how many patterns have something in them */
-        if (!sl->used) cv_rect(x + 62, y + 8, 4, 4, C_RING);
+        if (i == 0u) { uint16_t lk = i == pick_sel ? C_Y : C_RING; cv_rect(x + 21, y + 10, 7, 5, lk); cv_rect(x + 22, y + 6, 1, 4, lk); cv_rect(x + 26, y + 6, 1, 4, lk); cv_rect(x + 22, y + 5, 5, 1, lk); }      /* KOROBEINIKI: a padlock */
+        else if (!sl->used) cv_rect(x + 62, y + 8, 4, 4, C_RING);
         if (i == slot_cur) mini(x + 63, y + 16, 3u);
     }
     text_at(236 - text_w(&FONT_S, "HOME  Open"), 222, "HOME  Open", C_Y);

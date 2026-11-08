@@ -74,6 +74,7 @@
                               .shots { grid-template-columns:repeat(2, 1fr); } .corridor { height:170px; } }
 </style>
 <link rel="stylesheet" href="acid.css">
+<link rel="stylesheet" href="css/boxes.css">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -136,11 +137,7 @@
 <section>
   <div class="wrap">
     <h2>The three brothers</h2>
-    <div class="bros">
-      <a class="bro" href="../chipbox/"><b>Chipbox</b><span>Chiptune tracker. Over 35 sound chips.</span></a>
-      <div class="bro me"><b>Smileyface</b><span>This one. An acid bass line.</span></div>
-      <a class="bro" href="../drumlab/"><b>Drumlab</b><span>Drums, and a PO-32.</span></a>
-    </div>
+    <div class="shelf" id="shelf"></div>
     <p style="margin-top:14px">They get along: over Bluetooth one of them leads and the others follow. Tempo, kicks, patterns and effects. <a href="../drumlab/manual/sync/">Here's how</a>.</p>
   </div>
 </section>
@@ -157,5 +154,7 @@
 <footer>
   <div class="wrap">GPL-3.0-only. Built on <a href="https://github.com/hugelton/Felucca">Felucca</a>, SLOOP and <a href="https://github.com/pbarilla/chipbox">Chipbox</a>. <a href="https://github.com/pbarilla/smileyface">Source</a></div>
 </footer>
+<script>window.BRO_ME = "smileyface";</script>
+<script src="js/boxes.js"></script>
 </body>
 </html>

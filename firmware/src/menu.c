@@ -17,7 +17,7 @@ static void bt_demo_load(void)
         plen[p] = STEPS;
     }
     pat_idx = 0; cue_clear(); seq_bpm = 124; undo_has = 0;
-    bt_locked = 1;
+    bt_locked = 1; demo_loop = 0;
 }
 static void rnd_pattern_into(step_t *p)                         /* a random pattern, some sparse, some busy, in a root of its own */
 {
@@ -34,6 +34,7 @@ static void roll_dice(void)
     seq_stop();
     for (i = 0; i < SLOTS; i++) {
         slot_t *sl = &bank.s[i];
+        if (i == 0u) continue;                                  /* the demo stays */
         if (!sl->used) *sl = *slot_get(i);
         for (a = 0; a < PATS; a++) { rnd_pattern_into(sl->pats[a]); sl->plen[a] = STEPS; }
         sl->used = 1; sl->pcur = 0;

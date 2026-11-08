@@ -35,6 +35,7 @@ static volatile uint8_t cue_q[CUEQ];
 static volatile uint32_t cue_w, cue_r;
 static void cue_push(uint32_t p) { if (cue_w - cue_r < CUEQ) { cue_q[cue_w % CUEQ] = (uint8_t)p; cue_w++; } }
 static void cue_clear(void) { cue_r = cue_w; }
+static volatile uint8_t demo_loop;                              /* KOROBEINIKI is open: the eight patterns play in a ring when nothing is cued */
 /* the accent button, held from the main loop (ENV in PLAY) */
 static volatile uint32_t fx_acc;
 static volatile uint32_t cpu_max;
@@ -163,6 +164,7 @@ static void seq_next(void)                                      /* the next step
     if (++seq_step >= len) {
         seq_step = 0;
         if (cue_w != cue_r) { pat_idx = cue_q[cue_r % CUEQ] % PATS; cue_r++; }
+        else if (demo_loop) pat_idx = (uint8_t)((pat_idx + 1u) & 7u);
     }
 }
 static void seq_play(void)

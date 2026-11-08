@@ -1,0 +1,14 @@
+/* the three brothers as game boxes (same as the Chipbox site) */
+@font-face { font-family:"PS2P"; src:url(../fonts/PressStart2P.ttf) format("truetype"); font-display:swap; }
+:root { --gb-px:"PS2P", ui-monospace, monospace; --gb-gold:#ffe34d; }
+/* ---- the boxes */
+.shelf { display:grid; grid-template-columns:repeat(3,240px); gap:44px 34px; justify-content:center; margin-bottom:54px; }
+.box { position:relative; display:block; width:240px; height:340px; text-decoration:none; transition:transform .15s; }
+.box svg { display:block; filter:drop-shadow(0 14px 10px rgba(0,0,0,.55)); }
+.box:hover { transform:translateY(-8px) rotate(-1.5deg); }
+.box .shot { position:absolute; left:142px; top:174px; width:90px; height:90px; padding:5px; background:#14131a; border-radius:3px; box-shadow:0 3px 0 #0006,0 0 0 2px #fff6; transform:rotate(4deg); display:block; }
+.box .shot img { display:block; width:80px; height:80px; image-rendering:pixelated; }
+.box .badge { position:absolute; right:-10px; top:-12px; width:54px; height:54px; border-radius:50%; background:#e8402a; color:#fff; font:400 8px/54px var(--gb-px); text-align:center; transform:rotate(12deg); box-shadow:0 3px 0 #0004; }
+.box.me::after { content:"YOU ARE HERE"; position:absolute; left:0; right:0; bottom:-26px; text-align:center; font:400 8px/1 var(--gb-px); color:var(--gb-gold); }
+
+@media (max-width:900px) { .shelf { grid-template-columns:240px; } }

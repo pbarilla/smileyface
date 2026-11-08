@@ -22,33 +22,47 @@ static const mpage_t MP_STEPS[] = {
     {"Slide", M_SEL | M_KEYS, "Tap SEL to glide into the next step."},
     {"Rests", M_EDIT | M_SELECT, "Press EDIT for a rest. Turn SELECT to look around."},
     {"Go", M_PLAY | M_PRESETS, "Press PLAY. Turn PRESETS for another pattern."},
+    {"Undo", M_REC, "Press REC to undo. Press it again to flip back."},
 };
 static const mpage_t MP_KNOBS[] = {
-    {"Twist", M_KNOBS | M_SEQ | M_SMALL, "Turn KNOB 1 to 4 while it plays. Tap SEQ in time to set the tempo."},
-    {"More", M_ALGO, "Turn ALGORITHM for more knobs. The last pages are switches: turn right for up, left for down."},
+    {"Twist", M_KNOBS | M_SEQ | M_SMALL, "Turn KNOB 1 to 4 while it plays. Tap SEQ in time to set the tempo. SEQ and the tempo knob do nothing while an outside MIDI clock plays."},
+    {"More", M_ALGO | M_SMALL, "Turn ALGORITHM for more knobs. Most of the last pages are switches: turn right for up, left for down."},
 };
 static const mpage_t MP_PLAY[] = {
-    {"Patterns", M_PRESETS, "Every project holds 16 patterns. Turn PRESETS to pick the one you're writing."},
-    {"Cue", M_KEYS, "Press a white key in PLAY to line up a pattern. It starts when this one ends."},
+    {"Patterns", M_PRESETS | M_SMALL, "Every project holds 16 patterns. Turn PRESETS to pick the one you're writing. While it plays, the new one waits for the loop to end."},
+    {"Cue", M_KEYS, "Press a white key in PLAY to line up a pattern. It starts when this one ends. Stopped, it starts at once."},
     {"Chain", M_KEYS | M_EDIT, "Press more keys to chain them in order. Press EDIT to clear the chain."},
 };
 static const mpage_t MP_PROJ[] = {
-    {"Open", M_HOME | M_SELECT, "Hold HOME for your projects. Turn SELECT, then press HOME."},
-    {"Copy", M_SEL | M_EDIT, "Hold SEL on a project to copy it. Hold EDIT to wipe it."},
-    {"Menu", M_GLO | M_HOME, "Press GLO and HOME together. Careful in there."},
+    {"Open", M_HOME | M_SELECT | M_SMALL, "Hold HOME for your 12 projects. Turn SELECT or ALGORITHM to pick one, then press HOME. OCT- leaves."},
+    {"Copy", M_SEL | M_EDIT | M_SMALL, "Hold SEL on a project to copy it into the first free spot. Hold EDIT to start it over."},
+    {"Demo", M_SEL | M_SMALL, "Project 1 is KOROBEINIKI, a locked demo. It loops its 8 patterns and is never saved. Hold SEL on it for a copy you can change."},
 };
 static const mpage_t MP_FX[] = {
     {"Punch in", M_FX | M_SMALL, "Press FX. The white keys are 16 pads. Hold one for its effect. Press FX or HOME to leave."},
-    {"Latch", M_FX | M_SMALL, "Pad 16 is the latch. With it on, tap a pad to keep it on, and tap it again to let it go."},
-    {"Shared", M_FX | M_SMALL, "Pads 1 to 8 are the same on Chipbox and Drumlab, and sync over Bluetooth. Pads 9 to 15 are only on Smileyface."},
+    {"Latch", M_FX | M_SMALL, "Pad 16 is the latch. With it on, tap a pad to keep it on, and tap it again to let it go. Turning the latch off lets them all go."},
+    {"Shared", M_FX | M_SMALL, "Pads 1 to 8 are the same on Chipbox and Drumlab, and sync over Bluetooth when Punch-in FX is On. Pads 9 to 15 are only on Smileyface."},
+};
+static const mpage_t MP_MENU[] = {
+    {"Menu", M_GLO | M_HOME | M_SMALL, "Press GLO and HOME together to open the menu. Turn SELECT, then press OCT+ to choose. HOME closes it."},
+    {"Wipe", M_OCTU | M_SMALL, "Factory Reset wipes your projects. Roll The Dice randomizes every pattern in all of them. Neither can be undone. The demo stays."},
+    {"MIDI Clock", M_OCTU | M_SMALL, "Press OCT+ to switch between Off, Send and Follow. Send gives your tempo to other gear. Follow takes theirs, and is the default."},
+    {"Pierre, 1985", M_OCTU | M_SMALL, "Choose it to change the screen. Choose it again to change it back."},
+};
+static const mpage_t MP_BT[] = {
+    {"Sync", M_OCTU | M_SMALL, "Set Sync to Lead on one FM-1 and to Follow on the others. Press OCT+ to change it. It is always Off after power-up."},
+    {"Options", M_OCTU | M_SMALL, "Sidechain ducks the bass on every kick from the leader. Patterns and Key follow what the leader plays."},
+    {"Punch-in FX", M_FX | M_SMALL, "Hold pads 1 to 8 on the leader and every follower with Punch-in FX On plays them too."},
+    {"Demo", M_OCTU | M_SMALL, "Demo loads a locked acid line to play along. Nothing in it is saved. Open any project to leave it."},
 };
 #define MC(n, c, p) {n, c, p, sizeof p / sizeof p[0]}
 static const mchap_t MCH[] = {
     MC("Quick Start", RGB(160, 255, 0), MP_QUICK), MC("Steps", RGB(255, 238, 0), MP_STEPS), MC("Knobs", RGB(255, 36, 170), MP_KNOBS),
     MC("Play", RGB(0, 226, 255), MP_PLAY), MC("Projects", RGB(255, 238, 0), MP_PROJ), MC("FX", RGB(255, 36, 170), MP_FX),
+    MC("Menu", RGB(0, 226, 255), MP_MENU), MC("Bluetooth", RGB(160, 255, 0), MP_BT),
 };
 #define MCHN (sizeof MCH / sizeof MCH[0])
-enum { MC_QUICK, MC_STEPS, MC_KNOBS, MC_PLAY, MC_PROJ, MC_FX };
+enum { MC_QUICK, MC_STEPS, MC_KNOBS, MC_PLAY, MC_PROJ, MC_FX, MC_MENU, MC_BT };
 
 /* the FM-1 as the Play online page draws it (1040 x 664, cut off under the buttons): knob and button centres */
 static const int16_t MKN[8][2] = {{139, 187}, {253, 185}, {139, 295}, {253, 295}, {665, 185}, {772, 185}, {880, 185}, {988, 185}};
@@ -177,7 +191,7 @@ static void scene_man(void)
     }
     {   int32_t d0 = man_lock ? 120 - (int32_t)c->n * 5 : 220 - (int32_t)c->n * 10;          /* the dots: centred, or at the right with GLO Menu at the left */
         for (i = 0; i < c->n; i++) cv_rect(d0 + (int32_t)i * 10, 226, 6, 4, i <= man_pg ? C_K : RGB(200, 180, 0));
-        if (!man_lock) text_at(8, 218, "GLO Menu", C_K);
+        if (!man_lock) text_at(8, 218, "GLO Contents", C_K);
         if (man_pg > 0u || (!man_lock && man_ch > 0u)) text_at(man_lock ? 4 : d0 - 14, 216, "<", C_K);
         if (man_pg + 1u < c->n || (!man_lock && man_ch + 1u < MCHN)) text_at(218, 216, ">", C_K);
     }

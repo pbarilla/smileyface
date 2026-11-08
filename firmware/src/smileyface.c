@@ -108,7 +108,7 @@ static void pat_chain(uint32_t p)                               /* a key in PLAY
 
 static void app_main(void)
 {
-    uint32_t fake_b = 0, keys, prev = 0, btn_was = 0, hb_ms = 0, weird_next = 16000u, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
+    uint32_t fake_b = 0, keys, prev = 0, btn_was = 0, hb_ms = 0, mid_ms = 0, weird_next = 16000u, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
 #define bt_pack() do { cfg.pad[0] = (uint8_t)((brothers_mode & 3u) | bt_side << 2 | bt_patsync << 3 | bt_fxsync << 4 | bt_key << 5); cfg_dirty = 1; t_change = fm1_ms; } while (0)       /* the Bluetooth settings, kept with the others */
     uint32_t ext_ms = 0, tap_last = 0, tap_n = 0, tap_k = 0, tap_iv[4] = {0}, sel_was = 0, sel_t0 = 0, sel_used = 0;
     uint32_t home_was = 0, home_t0 = 0, home_used = 0, edit_was = 0, edit_t0 = 0, edit_used = 0, sel_was2 = 0, sel_rot = 0, sel_keyed = 0;
@@ -121,7 +121,7 @@ static void app_main(void)
 #if !defined(SMILEY_HOST) || defined(SPLASH_DEMO)
     splash_flyer();
 #endif
-    bank_load();
+    bank_load(); bank_demo_room();
     if (settings_load(&cfg, sizeof cfg) != 0 || cfg.magic != SET_OK) {                  /* a new device, or a new firmware */
         struct { uint8_t slot, oct, view, magic; } old;                                  /* the settings from before the MIDI clock: four bytes */
         if (settings_load(&old, sizeof old) == 0 && old.magic == SET_OK) { cfg.slot = old.slot; cfg.oct = old.oct; cfg.view = old.view; }
@@ -154,7 +154,6 @@ static void app_main(void)
           if (ota_hit_ms && brothers_mode && !paused) { paused = brothers_mode; brothers_set(0); }
           if (paused && fm1_ms - ota_hit_ms > 20000u) { brothers_set(paused); paused = 0; ota_hit_ms = 0; } }
             if (ota_back) { ota_back = 0; redraw |= 7; pt_y = pt_end = 0; }                                                     /* the installer gave up and left its message on the screen: paint it all again */
-            { static uint8_t bt_booted; if (!bt_booted && fm1_ms > 1500u) { bt_booted = 1; if ((cfg.pad[0] & 3u) && (cfg.pad[0] & 3u) <= 2u) brothers_set(cfg.pad[0] & 3u); } }      /* the mode it was left in */
             brothers_poll();                                                                                                   /* a follower: the leader's packets into clock ticks */
             if (brothers_mode == 1u) {                                                                                           /* the leader: the pattern playing (no drums: no kicks, no punch-ins), its key and swing */
                 static uint32_t sc_ms, sc_val;
@@ -181,10 +180,10 @@ static void app_main(void)
                 else if (ty == 0xB0u) {
                     if (d1 == 102u) { if (d2 >= 64u && !seq_run) seq_play(); else if (d2 < 64u && seq_run) seq_stop(); redraw |= 7; }
                     else if (d1 == 103u && d2 >= 30u) { seq_bpm = d2 * 2u; dirty = 1; t_change = fm1_ms; redraw |= 1; }
-                    else if (d1 == 104u) { slot_save(); dirty = 0; }
+                    else if (d1 == 104u) { if (!mid_ms || fm1_ms - mid_ms >= 500u) { mid_ms = fm1_ms | 1u; slot_save(); dirty = 0; } }          /* MIDI save and slot change write flash (each stalls the audio): at most one every half second, so a flood of them cannot keep the main loop away */
                     else if (d1 == 119u) { bt_demo_load(); dirty = 0; redraw |= 7; }                                                    /* test: the Bluetooth demo */
                     else if (d1 == 105u) { undo_save(); random_pattern(); dirty = 1; t_change = fm1_ms; redraw |= 7; }
-                    else if (d1 == 106u && d2 < SLOTS) { if (dirty) slot_save(); dirty = 0; slot_load(d2); cfg.slot = (uint8_t)d2; cfg_dirty = 1; t_change = fm1_ms; redraw |= 7; }
+                    else if (d1 == 106u && d2 < SLOTS && (!mid_ms || fm1_ms - mid_ms >= 500u)) { mid_ms = fm1_ms | 1u; if (dirty) slot_save(); dirty = 0; slot_load(d2); cfg.slot = (uint8_t)d2; cfg_dirty = 1; t_change = fm1_ms; redraw |= 7; }
                     else if (d1 == 112u) {                                                                                     /* test: one weird thing on demand */
                         if (d2 < 2u) bg_style = d2;
                         else if (d2 >= 10u && d2 <= 13u) { gag_kind = d2 - 9u; gag_ms = fm1_ms; }
@@ -336,7 +335,7 @@ static void app_main(void)
             continue;
         }
         if (edit_now && !edit_was) { edit_t0 = fm1_ms; edit_used = 0; }
-        if (pick_on && edit_now && !edit_used && fm1_ms - edit_t0 >= 600u) {                              /* hold EDIT on a project: it goes back to the start */
+        if (pick_on && edit_now && !edit_used && fm1_ms - edit_t0 >= 600u && pick_sel != 0u) {                              /* hold EDIT on a project: it goes back to the start */
             edit_used = 1; if (pick_sel == slot_cur) undo_save(); bank.s[pick_sel].used = 0; bank_flush();
             if (pick_sel == slot_cur) slot_load(pick_sel);
             redraw |= 7;

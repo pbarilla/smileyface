@@ -94,8 +94,47 @@ static int bank_flush(void)                                     /* the other cop
     bank_on ^= 1u;
     return 0;
 }
+/* KOROBEINIKI, project 1: an acid line under Chipbox's demo 1 (the same tune, A minor, 144 BPM, one bar a pattern: E A E A D C E A). Built when asked, never stored; the player's own project 1 moves to a free slot at start-up. */
+#define KX 255u                                                 /* a rest */
+#define KT 100u                                                 /* the chord's third */
+static const slot_t *korob(void)
+{
+    static slot_t k;
+    static uint8_t built;
+    static const uint8_t ROOT[8] = {40, 45, 40, 45, 38, 36, 40, 45}, THIRD[8] = {4, 3, 4, 3, 3, 4, 4, 3}, KIND[8] = {0, 0, 0, 1, 2, 2, 0, 1};
+    static const uint8_t IV[3][16] = {{0, 0, 12, 7, KX, 0, 12, KX, 0, KX, 7, 12, KX, 0, KT, 7},                    /* the verse */
+                                      {0, KX, 0, KX, 0, KX, 12, 12, 7, KX, KT, 7, 12, KX, 12, 7},                  /* the fill */
+                                      {0, 0, 12, 0, 0, 0, 12, 7, 0, 0, KT, 7, 0, 12, KT, 7}};                    /* the lift */
+    static const uint8_t FL[3][16] = {{F_ACC, 0, F_SLD, 0, 0, 0, F_ACC, 0, F_ACC, 0, F_SLD, 0, 0, 0, F_ACC, 0},
+                                      {F_ACC, 0, 0, 0, F_ACC, 0, 0, F_SLD, F_ACC, 0, 0, F_SLD, F_ACC, 0, F_SLD, 0},
+                                      {F_ACC, 0, 0, 0, F_ACC, 0, F_SLD, 0, F_ACC, 0, 0, 0, F_ACC, 0, F_SLD, 0}};
+    uint32_t p, i;
+    if (built) return &k;
+    k = FACTORY;
+    for (p = 0; p < PATS; p++) {
+        k.plen[p] = 16;
+        for (i = 0; i < STEPS; i++) {
+            uint32_t iv = p < 8u ? IV[KIND[p]][i] : KX;
+            k.pats[p][i].note = iv == KX ? 0u : (uint8_t)(ROOT[p] + (iv == KT ? THIRD[p] : iv));
+            k.pats[p][i].fl = iv == KX ? 0u : FL[KIND[p]][i];
+        }
+    }
+    k.kn.cut = 13; k.kn.res = 22; k.bpm = 144; k.used = 1; k.pcur = 0;
+    built = 1;
+    return &k;
+}
 static const slot_t *slot_get(uint32_t i)
 {
+    if (i == 0u) return korob();
     if (bank.s[i].used) return &bank.s[i];
-    return i == 0u ? &FACTORY : &BLANK;
+    return i == 1u ? &FACTORY : &BLANK;                          /* (the factory acid pattern used to be project 1) */
+}
+static void bank_demo_room(void)                                /* the player's own project 1 (an older firmware) moves to the last free slot */
+{
+    uint32_t f;
+    if (!bank.s[0].used) return;
+    for (f = SLOTS - 1u; f > 0u && bank.s[f].used; f--) {}
+    if (f == 0u) return;                                        /* no room: it stays where it is, hidden, and moves when there is */
+    bank.s[f] = bank.s[0]; bank.s[0].used = 0;
+    bank_flush();
 }

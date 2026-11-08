@@ -76,13 +76,13 @@
   <div class="row">
     <div class="txt"><h2>Twist the knobs</h2><p>The four dials at the bottom are <code>KNOB 1</code> to <code>KNOB 4</code>. They always change the sound, in every view, so you can twist while you play. Turn <code>ALGORITHM</code> to reach the next page of knobs (the dots at the right show where you are).</p>
 <table><tr><th>1</th><td><b>CUTOFF</b> opens the filter</td><td><b>RESON</b> makes it sing</td><td><b>ENVMOD</b> how far each note sweeps it</td><td><b>NRM DEC</b> how long a normal note's sweep takes</td></tr><tr><th>2</th><td><b>TUNE</b> nudges the pitch</td><td><b>ACCENT</b> how hard accents hit</td><td><b>SLIDE</b> how long slides take</td><td><b>TEMPO</b> the speed</td></tr><tr><th>3</th><td><b>DRIVE</b> oscillator into the filter (down: silent)</td><td><b>ACC DEC</b> how long an accent's sweep takes</td><td><b>TRACK</b> filter follows pitch</td><td><b>ATTACK</b> a soft start</td></tr><tr><th>4</th><td><b>FILT FM</b> oscillator shakes the filter</td><td><b>DECAY</b> how long a note lasts</td><td><b>LENGTH</b> how many steps play</td><td><b>LEVEL</b> how loud it is</td></tr><tr><th>5</th><td><b>WAVE</b> saw or square</td><td><b>SUB OSC</b> a square an octave down: off, low, mid, high</td><td><b>MUFFLE</b> 0, 1, 2</td><td><b>SWEEP</b> slow, norm, fast</td></tr><tr><th>6</th><td><b>ACC SWP</b> accent sweep and hi res, as on the Devil Fish</td><td><b>SWING</b> swings the odd steps</td><td><b>POLES</b> two, three or four</td><td><b>ACCENT</b> accents on or off</td></tr><tr><th>7</th><td><b>BASS</b> keeps the low end when it sings</td><td><b>DRIFT</b> a slow wander</td><td><b>DIODE</b> a grittier filter</td><td></td></tr></table>
-<p>The pages follow the TD-3-MO's panel: the filter, then tune and accent, then the Devil Fish row (drive, accent decay, tracking, soft attack), then the extras. The last three pages (5 to 7) are the switches, drawn as switches (wave, sub osc, muffler, sweep speed, accent sweep and hi res, poles, accent on or off, bass, drift, diode): turn a knob right to flip one up. Page 4 has volume decay (how long each note lasts), pattern length and the output level.</p></div>
+<p>The pages follow the TD-3-MO's panel: the filter, then tune and accent, then the Devil Fish row (drive, accent decay, tracking, soft attack), then the extras. Pages 5 to 7 are mostly switches, drawn as switches (wave, sub osc, muffler, sweep speed, accent sweep and hi res, poles, accent on or off, bass, drift, diode): turn a knob right to flip one up. Swing, on page 6, is a normal knob. Page 4 has volume decay (how long each note lasts), pattern length and the output level.</p></div>
     <img src="../img/steps.png" alt="The dials at the bottom">
   </div>
 </section>
 <section id="play">
   <div class="row">
-    <div class="txt"><h2>Patterns, cue and chain</h2><p>Every project has 16 patterns. Turn <code>PRESETS</code> to pick the one you're writing. While it's playing, the new one waits for the end of the loop.</p>
+    <div class="txt"><h2>Patterns, cue and chain</h2><p>Every project has 16 patterns. Turn <code>PRESETS</code> to pick the one you're writing. While it's playing, the new one waits for the end of the loop. Stopped, it switches at once.</p>
 <p>In the PLAY view the 16 white keys are the 16 patterns, left to right.</p>
 <ul>
   <li>Press a key to cue that pattern. It starts when the current one ends.</li>
@@ -99,7 +99,9 @@
     <div class="txt"><h2>Projects</h2><p>Hold <code>HOME</code> to see your 12 projects. A project is 16 patterns, the sound and the tempo.</p>
 <ul>
   <li>Turn <code>SELECT</code> to pick one and press <code>HOME</code> to open it.</li>
-  <li>Hold <code>SEL</code> on a project to copy it into a free spot. Hold <code>EDIT</code> to start it over.</li>
+  <li>Project 1 is KOROBEINIKI, a locked demo with a padlock. It loops its 8 patterns and is never saved. Hold <code>SEL</code> on it for a copy you can change.</li>
+  <li>Hold <code>SEL</code> on a project to copy it into the first free spot. Hold <code>EDIT</code> to start it over.</li>
+  <li>Turn <code>ALGORITHM</code> to jump a row. Press <code>OCT-</code> to leave.</li>
   <li>Send a project to a friend, or load theirs, on the <a href="../share/">Share</a> page.</li>
   <li>Press <code>SAVE</code> to save. Stop touching it for two seconds and it saves by itself.</li>
 </ul></div>
@@ -110,9 +112,9 @@
   <div class="row">
     <div class="txt"><h2>FX</h2><p>Press <code>FX</code> and the 16 white keys become punch-in pads. Hold a key for its effect. Let go and it stops. Press <code>FX</code> or <code>HOME</code> to go back.</p>
 <ul>
-  <li>Pads 1 to 8 are the same on Chipbox, Smileyface and Drumlab: <b>STOP</b> (the tape slows to a halt), <b>REPEAT</b>, <b>LPF</b>, <b>HPF</b>, <b>ECHO</b>, <b>REVERB</b>, <b>CRUSH</b> and <b>GATE</b>. They are the ones that travel over Bluetooth.</li>
+  <li>Pads 1 to 8 are the same on Chipbox, Smileyface and Drumlab: <b>STOP</b> (the tape slows to a halt), <b>REPEAT</b>, <b>LPF</b>, <b>HPF</b>, <b>ECHO</b>, <b>REVERB</b>, <b>CRUSH</b> and <b>GATE</b>. They are the ones that travel over Bluetooth, when Punch-in FX is On.</li>
   <li>Pads 9 to 15 only exist on Smileyface and they work on the bass: <b>ACCENT</b> accents every note, <b>SLIDE</b> slides every note, <b>OCT UP</b> and <b>OCT DN</b> move it an octave, <b>RESMAX</b> turns the resonance all the way up, <b>SWEEP</b> sweeps the cutoff, <b>SHORT</b> cuts the decay.</li>
-  <li>Pad 16 is the <b>LATCH</b>. Turn it on and a tap holds a pad on, the next tap lets it go.</li>
+  <li>Pad 16 is the <b>LATCH</b>. Turn it on and a tap holds a pad on, the next tap lets it go. Turn it off and every latched pad lets go.</li>
   <li>The old effects rack (delays, crushers and drives) is switched off.</li>
 </ul></div>
     <img src="../img/fx.png" alt="The FX pads">
@@ -122,7 +124,7 @@
   <h2>Bluetooth sync</h2>
   <p class="plain">Smileyface, Chipbox and Drumlab play together over Bluetooth. One leads and the others follow. No cables, no pairing.</p>
   <ul>
-    <li>Press <code>GLO</code> and <code>HOME</code> together, then pick <b>Bluetooth</b>. On the leader, set <b>Sync</b> to Lead. On the others, set it to Follow. <code>OCT+</code> changes it.</li>
+    <li>Press <code>GLO</code> and <code>HOME</code> together, then pick <b>Bluetooth</b>. On the leader, set <b>Sync</b> to Lead. On the others, set it to Follow. <code>OCT+</code> changes it. Sync is always Off after power-up.</li>
     <li>The status says <b>Searching</b>, then <b>Linked</b> when it hears the leader, then <b>In sync</b> when it is playing along.</li>
     <li>Press <code>PLAY</code> on the leader. Smileyface starts at the next bar and takes its tempo. Stop the leader and it stops.</li>
     <li><b>Sidechain</b>: the leader says where its kicks are. The bass ducks on every one and swells back, so it pumps.</li>
@@ -138,10 +140,10 @@
   <h2>More tricks</h2>
   <ul>
     <li><code>LFO</code> is a random pattern. <code>ARP</code> nudges a few steps. <code>REC</code> is undo, and pressing it again flips back.</li>
-    <li>Tap <code>SEQ</code> in time to set the tempo. Or turn <code>ALGORITHM</code> once and use <code>KNOB 4</code>.</li>
-    <li>Send MIDI clock to the FM-1 and it follows it. The tempo turns blue. Start and stop come along too.</li>
+    <li>Tap <code>SEQ</code> in time to set the tempo. Or turn <code>ALGORITHM</code> once and use <code>KNOB 4</code>. Both do nothing while an outside clock plays.</li>
+    <li>Send MIDI clock to the FM-1 and it follows it. The tempo turns cyan. Start and stop come along too.</li>
     <li>Play it from a keyboard over USB-MIDI. Hard notes (velocity 100 and up) are accents.</li>
-    <li>Press <code>GLO</code> and <code>HOME</code> together for the menu: Factory Reset, MIDI Clock (Off, Send or Follow: it follows an outside clock unless you change it) and Roll The Dice, which fills every pattern of every project with random stuff (you have to hold <code>OCT+</code> to confirm).</li>
+    <li>Press <code>GLO</code> and <code>HOME</code> together for the menu: Factory Reset, Roll The Dice, MIDI Clock (Off, Send or Follow: it follows an outside clock unless you change it), Bluetooth and Pierre, 1985. Reset wipes every project and Roll The Dice fills every pattern of every project with random stuff (hold <code>OCT+</code> to confirm); neither can be undone, and the demo stays.</li>
     <li>Everything on one page, ready to print: the <a href="../cheatsheet/">cheat sheet</a>.</li>
   </ul>
 </section>

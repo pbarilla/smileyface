@@ -19,6 +19,8 @@ complete source under the same licence too.
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ----------------------------------------------- |
 | Terminus font 8x16 (ter-u16n), rendered into `firmware/gen/felucca_font.h`                                                                                           | SIL OFL 1.1 | `assets/fonts/Terminus-LICENSE.txt`             |
 | JieLi AC79 SDK: `uboot.boot`, `cfg_tool.bin`, `eq_cfg_hw.bin` are read from your SDK checkout at build time and placed in the package; no SDK files are in this tree | Apache-2.0  | <https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK> |
+| Press Start 2P (the site), `site/fonts/` | SIL OFL 1.1 | `site/fonts/OFL.txt` |
+| The Bluetooth radio and link layer, `firmware/ble/` (copies, see its `README.md`): the stack from [fm1-base](https://github.com/charlesvestal/fm1-base) (Henri David and Charles Vestal) and the radio drivers from [felucca-bsp](https://github.com/hugelton/felucca-bsp) | GPL-3.0-only OR MPL-2.0 (used under the GPL); MPL-2.0 and Apache-2.0 | `firmware/ble/LICENSES/` |
 
 ## Trademarks
 

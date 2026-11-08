@@ -261,8 +261,8 @@
   "Hold ENV or SEL while you press a key to write the note with an accent or a slide",
   "PLAY view: press white keys to cue patterns. They play in the order you pressed, each when the one before ends. Hold ENV to accent everything",
   "Pages 5 and 6 of the knobs are the switches, drawn as switches: turn a knob right to flip one up",
-  "Hold SEL on a project in the project list to copy it, hold EDIT to start it over",
-  "Send MIDI clock and the FM-1 follows it. The tempo turns blue",
+  "Hold SEL on a project in the project list to copy it into the first free spot (project 1 is a locked demo, KOROBEINIKI), hold EDIT to start it over",
+  "Send MIDI clock and the FM-1 follows it. The tempo turns cyan",
   "GLO + HOME is the menu. MIDI Clock sends the clock or follows one (Off, Send, Follow). Roll The Dice fills every pattern of every project with random stuff: hold OCT+ to confirm"
  ]
 }
