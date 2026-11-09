@@ -1,0 +1,122 @@
+300 btn 7
+500 shot
+600 enc 0 1
+720 shot
+820 enc 0 1
+940 shot
+1040 enc 0 1
+1160 shot
+1260 enc 0 1
+1380 shot
+1480 enc 0 1
+1600 shot
+1700 enc 0 1
+1820 shot
+1920 enc 0 1
+2040 shot
+2140 enc 0 1
+2260 shot
+2360 enc 0 1
+2480 shot
+2580 enc 0 1
+2700 shot
+2800 enc 0 1
+2920 shot
+3020 enc 0 1
+3140 shot
+3240 enc 0 1
+3360 shot
+3460 enc 0 1
+3580 shot
+3680 enc 0 1
+3800 shot
+3900 enc 0 1
+4020 shot
+4120 enc 0 1
+4240 shot
+4340 enc 0 1
+4460 shot
+4560 enc 0 1
+4680 shot
+4780 enc 0 1
+4900 shot
+5000 enc 0 1
+5120 shot
+5220 enc 0 1
+5340 shot
+5440 enc 0 1
+5560 shot
+5660 enc 0 1
+5780 shot
+5880 enc 0 1
+6000 shot
+6100 enc 0 1
+6220 shot
+6320 enc 0 1
+6440 shot
+6540 enc 0 1
+6660 shot
+6760 enc 0 1
+6880 shot
+6980 enc 0 1
+7100 shot
+7200 enc 0 1
+7320 shot
+7420 enc 0 1
+7540 shot
+7640 enc 0 1
+7760 shot
+7860 enc 0 1
+7980 shot
+8080 enc 0 1
+8200 shot
+8300 enc 0 1
+8420 shot
+8520 enc 0 1
+8640 shot
+8740 enc 0 1
+8860 shot
+8960 enc 0 1
+9080 shot
+9180 enc 0 1
+9300 shot
+9400 enc 0 1
+9520 shot
+9620 enc 0 1
+9740 shot
+9840 enc 0 1
+9960 shot
+10060 enc 0 1
+10180 shot
+10280 enc 0 1
+10400 shot
+10500 enc 0 1
+10620 shot
+10720 enc 0 1
+10840 shot
+10940 enc 0 1
+11060 shot
+11160 enc 0 1
+11280 shot
+11380 enc 0 1
+11500 shot
+11600 enc 0 1
+11720 shot
+11820 enc 0 1
+11940 shot
+12040 enc 0 1
+12160 shot
+12260 enc 0 1
+12380 shot
+12480 enc 0 1
+12600 shot
+12700 enc 0 1
+12820 shot
+12920 enc 0 1
+13040 shot
+13140 enc 0 1
+13260 shot
+13360 enc 0 1
+13480 shot
+13580 enc 0 1
+13700 end

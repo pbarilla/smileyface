@@ -67,14 +67,14 @@
   {
    "id": "GLO",
    "name": "GLO",
-   "STEPS": "Manual",
-   "PLAY": "Manual"
+   "STEPS": "Manual. After a twist of the knobs: what that page does",
+   "PLAY": "Manual. After a twist of the knobs: what that page does"
   },
   {
    "id": "PLAY",
    "name": "PLAY",
-   "STEPS": "Start, stop",
-   "PLAY": "Start, stop"
+   "STEPS": "Start, stop: loops the pattern you are on",
+   "PLAY": "Start, stop: plays the chain from its first pattern, round and round"
   },
   {
    "id": "SEQ",
@@ -98,7 +98,7 @@
    "id": "EDIT",
    "name": "EDIT",
    "STEPS": "Rest, move on",
-   "PLAY": "Clear the chain"
+   "PLAY": "Tap: clear what is lined up (and the chain, when stopped). Held + SELECT: move the pattern"
   },
   {
    "id": "LFO",
@@ -122,7 +122,7 @@
    "id": "OCT-/OCT+",
    "name": "OCT-/OCT+",
    "STEPS": "Octave",
-   "PLAY": "Octave"
+   "PLAY": "Stopped: OCT+ adds the pattern to the chain, OCT- takes the last one off"
   },
   {
    "id": "GLO+HOME",
@@ -261,9 +261,9 @@
  "tips": [
   "Hold SEL and turn SELECT to wrap the pattern round: the steps slide along and come back at the other end",
   "Hold ENV or SEL while you press a key to write the note with an accent or a slide",
-  "PLAY view: press white keys to cue patterns. They play in the order you pressed, each when the one before ends. Hold ENV to accent everything",
+  "PLAY view: pick a pattern and press OCT+ to add it to the chain; PLAY plays the chain, round and round (in STEPS it loops one pattern). While it plays, a white key lines up a pattern",
   "Pages 5 and 6 of the knobs are the switches, drawn as switches: turn a knob right to flip one up",
-  "Hold SEL on a project in the project list to copy it into the first free spot (project 1 is a locked demo, KOROBEINIKI), hold EDIT to start it over",
+  "Hold SEL on a project in the project list to copy it into the first free spot (project 1 is a locked demo, KOROBEINIKI), hold EDIT to start it over (on the demo: delete it, then project 1 is yours; Restore Demos in the menu brings it back when project 1 is empty)",
   "Send MIDI clock and the FM-1 follows it. The tempo turns cyan",
   "GLO + HOME is the menu. MIDI Clock sends the clock or follows one (Off, Send, Follow). Roll The Dice fills every pattern of every project with random stuff: hold OCT+ to confirm"
  ]

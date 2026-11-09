@@ -1,0 +1,11 @@
+# a new device (build with -DSMILEY_QS): the locked quick start, SELECT turns its pages, HOME leaves, OCT- hides it
+300 shot
+500 enc 0 1
+700 shot
+900 enc 0 1
+1100 enc 0 1
+1300 enc 0 1
+1700 shot
+1900 btn 0
+2300 shot
+2600 end

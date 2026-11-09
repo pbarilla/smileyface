@@ -6,15 +6,20 @@ enum {
     M_OCTD = 1u << 8, M_OCTU = 1u << 9, M_FX = 1u << 10, M_SEL = 1u << 11, M_ENV = 1u << 12, M_LFO = 1u << 13, M_EDIT = 1u << 14, M_GLO = 1u << 15,
     M_HOME = 1u << 16, M_SAVE = 1u << 17, M_ARP = 1u << 18, M_SEQ = 1u << 19, M_PLAY = 1u << 20, M_REC = 1u << 21, M_KEYS = 1u << 22,
     M_KNOBS = M_K1 | M_K2 | M_K3 | M_K4,
-    M_SMALL = 1u << 24, M_NOPANEL = 1u << 25                                    /* the picture small (long text), no picture */
+    M_SMALL = 1u << 24, M_NOPANEL = 1u << 25, M_QR = 1u << 26                   /* the picture small (long text), no picture, the QR code */
 };
+#include "qr.h"
 typedef struct { const char *topic; uint32_t ring; const char *text; } mpage_t;
 typedef struct { const char *name; uint16_t col; const mpage_t *page; uint8_t n; } mchap_t;
 
 static const mpage_t MP_QUICK[] = {
+    {"", M_GLO | M_SELECT | M_HOME | M_SMALL, "Press GLO at any time to open the manual. Spin SELECT to flip the pages. When you're ready, hit HOME to close this guide!"},
     {"", M_LFO | M_SMALL, "Hit LFO until you find something you like."},
     {"", M_ALGO | M_KNOBS | M_SMALL, "Twist ALGORITHM to view all the knobs and switches."},
     {"", M_HOME | M_SMALL, "Tap HOME. Try it and find out."},
+    {"", M_PLAY | M_SMALL, "Press PLAY in STEPS to loop the pattern you are on. In the PLAY view, add patterns to a chain with OCT+, then press PLAY to hear them all."},
+    {"", M_GLO | M_HOME | M_SMALL, "Press GLO for help on any screen. Hold HOME for your projects. Press GLO and HOME together for the menu."},
+    {"", M_QR, "Find the full manual at"},
 };
 static const mpage_t MP_STEPS[] = {
     {"Write", M_KEYS | M_OCTD | M_OCTU, "Press a key to drop a note. OCT- and OCT+ move the keys."},
@@ -26,12 +31,22 @@ static const mpage_t MP_STEPS[] = {
 };
 static const mpage_t MP_KNOBS[] = {
     {"Twist", M_KNOBS | M_SEQ | M_SMALL, "Turn KNOB 1 to 4 while it plays. Tap SEQ in time to set the tempo. SEQ and the tempo knob do nothing while an outside MIDI clock plays."},
-    {"More", M_ALGO | M_SMALL, "Turn ALGORITHM for more knobs. Most of the last pages are switches: turn right for up, left for down."},
+    {"More", M_ALGO | M_SMALL, "Turn ALGORITHM for more knobs. Most of the last pages are switches: turn right for up, left for down. GLO after a twist explains that page."},
+    {"Filter", M_KNOBS | M_ALGO | M_SMALL, "CUTOFF opens the filter. RESON makes it sing. ENVMOD sets how far each note sweeps it. NRM DEC is how fast that sweep falls on a plain note."},
+    {"Note", M_KNOBS | M_ALGO | M_SMALL, "TUNE moves the pitch. ACCENT is how hard an accent hits. SLIDE is how long a glide takes. TEMPO is the speed, 60 to 200."},
+    {"Devil Fish", M_KNOBS | M_ALGO | M_SMALL, "DRIVE pushes the sound into the filter. ACC DEC is how the sweep falls on an accent. TRACK lets the filter follow the note. ATTACK softens plain notes."},
+    {"Extras", M_KNOBS | M_ALGO | M_SMALL, "FILT FM lets the sound shake its own cutoff. DECAY is how long a note rings. LENGTH sets the steps in this pattern, 1 to 16. LEVEL is the volume."},
+    {"Switches", M_KNOBS | M_ALGO | M_SMALL, "WAVE flips saw and square. SUB OSC adds a square an octave down. MUFFLE soft-clips the output. SWEEP is how far an accent sweeps."},
+    {"Hi res", M_KNOBS | M_ALGO | M_SMALL, "ACC SWP picks sweep, sweep with hi res, or hi res alone. SWING pushes odd steps late. POLES is 2, 3 or 4. ACCENT turns accents on or off."},
+    {"Grit", M_KNOBS | M_ALGO | M_SMALL, "BASS puts the oscillator's low end back under the filter, once or twice. DRIFT wanders the pitch and tone. DIODE saturates every stage."},
 };
 static const mpage_t MP_PLAY[] = {
     {"Patterns", M_PRESETS | M_SMALL, "Every project holds 16 patterns. Turn PRESETS to pick the one you're writing. While it plays, the new one waits for the loop to end."},
-    {"Cue", M_KEYS, "Press a white key in PLAY to line up a pattern. It starts when this one ends. Stopped, it starts at once."},
-    {"Chain", M_KEYS | M_EDIT, "Press more keys to chain them in order. Tap EDIT to clear the chain."},
+    {"Pick", M_KEYS, "Press a white key in PLAY to pick a pattern. Stopped, it is yours at once."},
+    {"Chain", M_OCTU | M_SMALL, "Stopped, pick a pattern and press OCT+ to add it to the chain along the bottom. Add up to 16, the same pattern as often as you like."},
+    {"Trim", M_OCTD | M_EDIT | M_SMALL, "Press OCT- to take the last pattern off the chain. Tap EDIT to clear the whole chain."},
+    {"Play it", M_PLAY | M_SMALL, "Press PLAY in the PLAY view to play the chain from its first pattern, round and round. Press PLAY in STEPS to loop only the pattern you are on."},
+    {"Live", M_KEYS | M_EDIT | M_SMALL, "While it plays, press a white key to line up a pattern. It starts when this one ends, then the chain goes on. Tap EDIT to clear what is lined up."},
     {"Copy", M_SEL, "Stop the music, then hold SEL to copy this pattern into the first empty pad."},
     {"Look", M_SELECT, "Stop the music, then turn SELECT to move over the pads."},
     {"Move", M_EDIT | M_SELECT, "Hold EDIT and turn SELECT to move this pattern along. The others shift to make room."},
@@ -39,7 +54,7 @@ static const mpage_t MP_PLAY[] = {
 static const mpage_t MP_PROJ[] = {
     {"Open", M_HOME | M_SELECT | M_SMALL, "Hold HOME for your 12 projects. Turn SELECT or ALGORITHM to pick one, then press HOME. OCT- leaves."},
     {"Copy", M_SEL | M_EDIT | M_SMALL, "Hold SEL on a project to copy it into the first free spot. Hold EDIT to start it over."},
-    {"Demo", M_SEL | M_SMALL, "Project 1 is KOROBEINIKI, a locked demo. It loops its 8 patterns and is never saved. Hold SEL on it for a copy you can change."},
+    {"Demo", M_SEL | M_SMALL, "Project 1 is KOROBEINIKI, a locked demo: its chain plays all 8 patterns and it never saves. Hold SEL for a copy you can change. Hold EDIT to delete it: project 1 is then yours."},
 };
 static const mpage_t MP_FX[] = {
     {"Punch in", M_FX | M_SMALL, "Press FX. The white keys are 16 pads. Hold one for its effect. Press FX or HOME to leave."},
@@ -48,9 +63,11 @@ static const mpage_t MP_FX[] = {
 };
 static const mpage_t MP_MENU[] = {
     {"Menu", M_GLO | M_HOME | M_SMALL, "Press GLO and HOME together to open the menu. Turn SELECT, then press OCT+ to choose. HOME closes it."},
-    {"Wipe", M_OCTU | M_SMALL, "Factory Reset wipes your projects. Roll The Dice randomizes every pattern in all of them. Neither can be undone. The demo stays."},
+    {"Wipe", M_OCTU | M_SMALL, "Factory Reset wipes your projects and brings the demo back. Roll The Dice randomizes every pattern in all of them. Neither can be undone."},
+    {"Restore Demos", M_OCTU | M_SMALL, "Press OCT+ on Restore Demos to bring back the demo you deleted. Project 1 must be empty: if it holds your project, the line reads Slot 1 In Use."},
     {"MIDI Clock", M_OCTU | M_SMALL, "Press OCT+ to switch between Off, Send and Follow. Send gives your tempo to other gear. Follow takes theirs, and is the default."},
     {"Pierre, 1985", M_OCTU | M_SMALL, "Choose it to change the screen. Choose it again to change it back."},
+    {"Switches", M_OCTU | M_SMALL, "Quick Start Always shows the quick start at every power-on. Show Tips turns the idle tips on or off. Projects At Start opens your projects."},
 };
 static const mpage_t MP_BT[] = {
     {"Sync", M_OCTU | M_SMALL, "Open Brothers Link in the menu. Set Sync to Lead on one FM-1 and to Follow on the others. Press OCT+ to change it. It is always Off after power-up."},
@@ -96,6 +113,7 @@ static void man_panel(uint32_t ring)
     if (ring & M_KEYS) man_ring(MPX(60), MPY(424) + MZ(1), MPX(1040), MPY(424) + MZ(14));
 }
 static uint16_t man_ink = C_W;                                  /* the colour of the words (black on the yellow paper) */
+static uint32_t man_dry;                                        /* measuring: the text is wrapped but not drawn */
 static int32_t man_lines(int32_t x, int32_t y, const char *s, int32_t maxw)       /* wrapped on spaces, 17 px a line; returns the next y */
 {
     const char *ls = s, *le = s, *p = s;
@@ -112,12 +130,13 @@ static int32_t man_lines(int32_t x, int32_t y, const char *s, int32_t maxw)     
         memcpy(t, ls, n); t[n] = 0;
         if (le != ls && text_w(&FONT_S, t) > maxw) {
             n = (uint32_t)(le - ls); memcpy(t, ls, n); t[n] = 0;
-            text_at(x, y, t, man_ink); y += 17;
+            if (!man_dry) text_at(x, y, t, man_ink);
+            y += 17;
             ls = p;
         }
         le = we; p = we;
     }
-    if (le != ls) { uint32_t n = (uint32_t)(le - ls); memcpy(t, ls, n); t[n] = 0; text_at(x, y, t, man_ink); y += 17; }
+    if (le != ls) { uint32_t n = (uint32_t)(le - ls); memcpy(t, ls, n); t[n] = 0; if (!man_dry) text_at(x, y, t, man_ink); y += 17; }
     return y;
 }
 static void man_num(char *d, uint32_t a, uint32_t b)         /* "a/b", both under 100 */
@@ -181,12 +200,17 @@ static void scene_man(void)
     man_num(nb, man_pg + 1u, c->n);
     man_title(8, c->name, c->col);
     text_at(232 - text_w(&FONT_S, nb), 4, nb, c->col);
-    if (p->ring & M_NOPANEL) man_lines(8, 70, p->text, 216);
+    if (p->ring & M_QR) {                                                       /* the code: dark on light, with its quiet zone */
+        uint32_t r, q;
+        man_lines(8, 32, p->text, 216);
+        cv_rect(46, 54, (QR_N + 8) * 4, (QR_N + 8) * 4, C_W);
+        for (r = 0; r < QR_N; r++) for (q = 0; q < QR_N; q++) if (QR_ROW[QR_GUIDE][r] >> (QR_N - 1u - q) & 1u) cv_rect(46 + 16 + (int32_t)q * 4, 54 + 16 + (int32_t)r * 4, 4, 4, C_K);
+    } else if (p->ring & M_NOPANEL) man_lines(8, 70, p->text, 216);
     else {
         int32_t ty = 142, small = (p->ring & M_SMALL) != 0;
         man_k = small ? 7 : 13; man_x0 = small ? 64 : 16; man_y0 = 34;
         man_panel(p->ring);
-        if (small) { ty = 88; if (p->topic[0]) { text_at(9, 85, p->topic, C_PINK); text_at(8, 84, p->topic, C_K); ty = 104; } }
+        if (small) { ty = 96; if (p->topic[0]) { text_at(9, 85, p->topic, C_PINK); text_at(8, 84, p->topic, C_K); ty = 104; } }
         else if (p->topic[0]) { text_at(9, 121, p->topic, C_PINK); text_at(8, 120, p->topic, C_K); }
         else ty = 120;
         man_lines(8, ty, p->text, 216);
@@ -195,6 +219,7 @@ static void scene_man(void)
     {   int32_t d0 = man_lock ? 120 - (int32_t)c->n * 5 : 220 - (int32_t)c->n * 10;          /* the dots: centred, or at the right with GLO Menu at the left */
         for (i = 0; i < c->n; i++) cv_rect(d0 + (int32_t)i * 10, 226, 6, 4, i <= man_pg ? C_K : RGB(200, 180, 0));
         if (!man_lock) text_at(8, 218, "GLO Contents", C_K);
+        else { text_at(8, 207, "HOME  Close", C_K); text_at(232 - text_w(&FONT_S, "OCT-  Hide"), 207, "OCT-  Hide", C_K); }       /* the quick start: HOME leaves it, OCT- leaves it and keeps it away */
         if (man_pg > 0u || (!man_lock && man_ch > 0u)) text_at(man_lock ? 4 : d0 - 14, 216, "<", C_K);
         if (man_pg + 1u < c->n || (!man_lock && man_ch + 1u < MCHN)) text_at(218, 216, ">", C_K);
     }

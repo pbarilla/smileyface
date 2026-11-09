@@ -1,0 +1,35 @@
+# a second start on the same flash: project 1 holds the player's notes (no padlock). Restore Demos is refused ("Slot 1 In Use"); clear the project (hold EDIT), then Restore Demos works
+300 shot
+500 held 0x100
+1300 held 0
+1500 shot
+1700 held 0x180
+1800 held 0
+1900 enc 0 1
+1920 enc 0 1
+1940 enc 0 1
+1960 enc 0 1
+1980 enc 0 1
+2000 enc 0 1
+2300 shot
+2400 btn 1
+2700 shot
+2800 held 0x100
+2900 held 0
+3000 held 0x100
+3800 held 0
+4000 held 0x40
+4800 held 0
+5000 shot
+5100 held 0x180
+5200 held 0
+5300 enc 0 1
+5320 enc 0 1
+5340 enc 0 1
+5360 enc 0 1
+5380 enc 0 1
+5400 enc 0 1
+5700 shot
+5800 btn 1
+6100 shot
+6500 end

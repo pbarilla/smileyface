@@ -5,7 +5,8 @@
 #define SLOTS 12u
 typedef struct { step_t pats[PATS][STEPS]; uint8_t plen[PATS]; knobs_t kn; uint8_t bpm, used, pcur, pad; fxr_t fx; } slot_t;      /* 604 bytes (the first 552 were a whole project before the rack) */
 #define SLOT_V1 552u
-typedef struct { uint32_t magic, seq, crc, n; slot_t s[SLOTS]; } bank_t;
+#define CHAIN_REC 18u                                           /* a project's chain: its length, 16 pattern numbers, a check byte (an old bank has erased bytes there: no chain) */
+typedef struct { uint32_t magic, seq, crc, n; slot_t s[SLOTS]; uint8_t chain[SLOTS][CHAIN_REC]; } bank_t;       /* (the crc covers the projects only, so an older firmware still reads a bank that has chains) */
 #define BANK_MAGIC 0x53464B33u
 #define BANK_MAGIC_V1 0x53464B32u
 #define BANK_AT PROJ_AT
@@ -50,6 +51,24 @@ static uint32_t crc32(const uint8_t *p, uint32_t n)             /* (platform.c h
     return ~c;
 }
 #endif
+static uint8_t chain_sum(const uint8_t *r) { uint32_t i, x = 0xA5u ^ r[0]; for (i = 1; i <= CHAIN_MAX; i++) x ^= r[i]; return (uint8_t)x; }
+static uint32_t chain_rec_n(const uint8_t *r)                   /* the entries a record holds: 0 when it is empty or not valid */
+{
+    uint32_t i;
+    if (r[0] < 1u || r[0] > CHAIN_MAX || r[CHAIN_MAX + 1u] != chain_sum(r)) return 0;
+    for (i = 0; i < r[0]; i++) if (r[1u + i] >= PATS) return 0;
+    return r[0];
+}
+static void chain_rec_put(uint8_t *r, const volatile uint8_t *src, uint32_t n)
+{
+    uint32_t i;
+    memset(r, 0, CHAIN_REC);
+    if (n > CHAIN_MAX) n = CHAIN_MAX;
+    r[0] = (uint8_t)n;
+    for (i = 0; i < n; i++) r[1u + i] = src[i] < PATS ? src[i] : 0u;
+    r[CHAIN_MAX + 1u] = chain_sum(r);
+    if (!n) memset(r, 0, CHAIN_REC);                            /* (an empty chain is all zeros) */
+}
 static uint32_t bank_crc(void) { return crc32((const uint8_t *)bank.s, sizeof bank.s); }
 static int bank_try(uint32_t at, bank_t *b)
 {
@@ -89,7 +108,7 @@ static int bank_flush(void)                                     /* the other cop
     bank.seq++;
     bank.crc = bank_crc();
     if (pf_erase(at) != 0 || pf_erase(at + 0x1000u) != 0) return -1;
-    if (pf_write(at + 16u, (const uint8_t *)bank.s, sizeof bank.s) != 0) return -1;
+    if (pf_write(at + 16u, (const uint8_t *)bank.s, sizeof bank.s + sizeof bank.chain) != 0) return -1;      /* (the projects, then their chains) */
     if (pf_write(at, (const uint8_t *)&bank, 16u) != 0) return -1;
     bank_on ^= 1u;
     return 0;
@@ -123,9 +142,19 @@ static const slot_t *korob(void)
     built = 1;
     return &k;
 }
+static uint8_t demo_off;                                        /* the demo was deleted (cfg.pad[2], set at start and by the picker / menu): project 1 is an ordinary slot until Restore Demos puts the demo back (only if the slot is empty) */
+static uint8_t slot0_busy;                                      /* the demo is gone and project 1 holds something of the player's (saved, or open with edits): Restore Demos must not overwrite it (the main loop keeps it) */
+static void slot_chain_rec(uint32_t i, uint8_t *r)             /* a project's chain record: the demo plays its eight patterns in order */
+{
+    uint32_t k;
+    uint8_t d[8];
+    memset(r, 0, CHAIN_REC);
+    if (i == 0u && !demo_off) { for (k = 0; k < 8u; k++) d[k] = (uint8_t)k; chain_rec_put(r, d, 8u); }
+    else if (bank.s[i].used && chain_rec_n(bank.chain[i])) memcpy(r, bank.chain[i], CHAIN_REC);
+}
 static const slot_t *slot_get(uint32_t i)
 {
-    if (i == 0u) return korob();
+    if (i == 0u && !demo_off) return korob();
     if (bank.s[i].used) return &bank.s[i];
     return i == 1u ? &FACTORY : &BLANK;                          /* (the factory acid pattern used to be project 1) */
 }
@@ -135,6 +164,6 @@ static void bank_demo_room(void)                                /* the player's 
     if (!bank.s[0].used) return;
     for (f = SLOTS - 1u; f > 0u && bank.s[f].used; f--) {}
     if (f == 0u) return;                                        /* no room: it stays where it is, hidden, and moves when there is */
-    bank.s[f] = bank.s[0]; bank.s[0].used = 0;
+    bank.s[f] = bank.s[0]; memcpy(bank.chain[f], bank.chain[0], CHAIN_REC); bank.s[0].used = 0; memset(bank.chain[0], 0, CHAIN_REC);
     bank_flush();
 }

@@ -1,0 +1,23 @@
+# the demo: hold HOME for the projects, hold EDIT on it: a window; OCT- keeps it, OCT+ deletes it; project 1 is then an ordinary slot: open it, write two notes, SAVE
+500 held 0x100
+1300 held 0
+1500 shot
+1600 held 0x40
+2400 shot
+2500 held 0
+2600 btn 0
+2800 shot
+3000 held 0x40
+3800 held 0
+4000 shot
+4100 btn 1
+4400 shot
+4600 held 0x100
+4700 held 0
+5000 keys 1
+5060 keys 0
+5200 keys 2
+5260 keys 0
+5400 shot
+5500 btn 9
+7500 end

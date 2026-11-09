@@ -2,6 +2,10 @@
 300 held 0x180
 400 held 0
 500 shot
+520 enc 0 1
+540 enc 0 1
+560 enc 0 1
+580 enc 0 1
 600 enc 0 1
 700 shot
 800 btn 1
@@ -22,6 +26,13 @@
 3900 shot
 4000 held 0x180
 4100 held 0
+4110 enc 0 1
+4120 enc 0 1
+4130 enc 0 1
+4140 enc 0 1
+4150 enc 0 1
+4160 enc 0 1
+4170 enc 0 1
 4200 btn 1
 4300 shot
 4400 btn 1

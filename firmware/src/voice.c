@@ -35,7 +35,13 @@ static volatile uint8_t cue_q[CUEQ];
 static volatile uint32_t cue_w, cue_r;
 static void cue_push(uint32_t p) { if (cue_w - cue_r < CUEQ) { cue_q[cue_w % CUEQ] = (uint8_t)p; cue_w++; } }
 static void cue_clear(void) { cue_r = cue_w; }
-static volatile uint8_t demo_loop;                              /* KOROBEINIKI is open: the eight patterns play in a ring when nothing is cued */
+/* the CHAIN: up to 16 patterns, saved with the project, played in order and round again when PLAY is pressed in the PLAY view; PLAY anywhere else loops the one pattern.
+ * The main loop edits it while stopped (an entry is written, then the length grows: the audio side never reads past chain_n); chain_pos is the entry playing. */
+#define CHAIN_MAX 16u
+static volatile uint8_t chain[CHAIN_MAX];
+static volatile uint32_t chain_n, chain_pos;
+static volatile uint8_t seq_wantchain;                          /* set by the main loop: PLAY would play the chain (the PLAY view is on) */
+static volatile uint8_t seq_chain_on, seq_fresh;                /* this run follows the chain; the first tick of a run plays step 1 of the pattern it starts on */
 /* the accent button, held from the main loop (ENV in PLAY) */
 static volatile uint32_t fx_acc;
 static volatile uint32_t cpu_max;
@@ -163,13 +169,20 @@ static void seq_next(void)                                      /* the next step
     if (len < 1u || len > STEPS) len = STEPS;
     if (++seq_step >= len) {
         seq_step = 0;
-        if (cue_w != cue_r) { pat_idx = cue_q[cue_r % CUEQ] % PATS; cue_r++; }
-        else if (demo_loop) pat_idx = (uint8_t)((pat_idx + 1u) & 7u);
+        if (seq_fresh) seq_fresh = 0;                           /* (a run starts one step "before" step 1: that wrap is not the end of a pattern) */
+        else if (cue_w != cue_r) { pat_idx = cue_q[cue_r % CUEQ] % PATS; cue_r++; }                    /* a cued pattern first, then the chain goes on where it was */
+        else if (seq_chain_on && chain_n && !(brothers_mode == 2u && bt_patsync)) {
+            uint32_t n = chain_n;
+            chain_pos = (chain_pos + 1u) % n;
+            pat_idx = chain[chain_pos] % PATS;
+        }
     }
 }
 static void seq_play(void)
 {
     seq_step = STEPS - 1u; sq_acc = 661500u; clk_acc = 661500u; sq_prev_sld = 0; ext_phase = 5; ext_seen = ext_in; ext_age = 0;
+    seq_chain_on = seq_wantchain && chain_n ? 1u : 0u; chain_pos = 0; seq_fresh = 1;
+    if (seq_chain_on) pat_idx = chain[0] % PATS;                /* the chain starts at its first entry; anywhere else the pattern you are on loops */
     if (clk_send) midi_send(0xFAu, 0, 0);
     if (brothers_mode == 1u) brothers_lead_run(1);
     seq_run = 1;      /* (with an outside clock the next tick is the first step) */

@@ -7,11 +7,11 @@
  *   0x52 write   kind, slot, total (2), offset (2), bytes -> 0x52: status, kind, slot, bytes so far (2). In order, from offset 0; the last chunk
  *                checks the whole thing and stores it. A written project is opened.
  *   0x53 delete  kind, slot -> 0x53: status
- * A project is its slot_t (bank.c).
+ * A project is its slot_t (bank.c), then its chain record (CHAIN_REC bytes) if it has a chain; a file without one (an older firmware's) loads as a project with no chain.
  * status: 0 ok, 1 stored, 2 not valid, 4 flash failed, 5 out of order, 6 no such slot, 7 empty slot
  * Included by smileyface.c. The sound stops while a transfer writes (flash stalls it). */
 #define PX_CHUNK 200u
-#define PX_MAX ((uint32_t)sizeof(slot_t))
+#define PX_MAX ((uint32_t)sizeof(slot_t) + CHAIN_REC)                 /* a project, and its chain after it when it has one (an older file has none) */
 static uint8_t px[PX_MAX] __attribute__((section(".pool")));    /* the thing in transit */
 static uint32_t px_len, px_got, px_kind, px_slot, px_open_req;  /* px_open_req: slot + 1 to open in the main loop */
 static uint32_t g_dirty;                                        /* the main loop's unsaved flag, for info */
@@ -35,17 +35,29 @@ static void clean_slot(slot_t *s)                               /* whatever came
 }
 static uint32_t px_snapshot(uint32_t slot)       /* into px: the length, 0 when empty */
 {
-    if (slot == slot_cur) { slot_t t; memset(&t, 0, sizeof t); slot_pack(&t); memcpy(px, &t, sizeof t); return (uint32_t)sizeof t; }
+    if (slot == slot_cur) {
+        slot_t t;
+        memset(&t, 0, sizeof t); slot_pack(&t); memcpy(px, &t, sizeof t);
+        if (!chain_n) return (uint32_t)sizeof t;
+        chain_rec_put(px + sizeof t, chain, chain_n);
+        return (uint32_t)sizeof t + CHAIN_REC;
+    }
     if (!bank.s[slot].used) return 0;
     memcpy(px, &bank.s[slot], sizeof(slot_t));
-    return (uint32_t)sizeof(slot_t);
+    if (!chain_rec_n(bank.chain[slot])) return (uint32_t)sizeof(slot_t);
+    memcpy(px + sizeof(slot_t), bank.chain[slot], CHAIN_REC);
+    return (uint32_t)sizeof(slot_t) + CHAIN_REC;
 }
 static uint32_t px_store(uint32_t slot, uint32_t len)           /* the whole thing is in px: a status */
 {
-    if (len != (uint32_t)sizeof(slot_t) && len != SLOT_V1) return 2u;
+    if (len != (uint32_t)sizeof(slot_t) + CHAIN_REC && len != (uint32_t)sizeof(slot_t) && len != SLOT_V1) return 2u;
     seq_stop();
+    memset(bank.chain[slot], 0, CHAIN_REC);
     if (len == SLOT_V1) { memcpy(&bank.s[slot], px, SLOT_V1); bank.s[slot].fx = BLANK.fx; }        /* a project from before the rack */
-    else memcpy(&bank.s[slot], px, sizeof(slot_t));
+    else {
+        memcpy(&bank.s[slot], px, sizeof(slot_t));
+        if (len > (uint32_t)sizeof(slot_t) && chain_rec_n(px + sizeof(slot_t))) memcpy(bank.chain[slot], px + sizeof(slot_t), CHAIN_REC);       /* (a chain that is not valid is dropped) */
+    }
     clean_slot(&bank.s[slot]);
     if (bank_flush() != 0) return 4u;
     px_open_req = slot + 1u;
@@ -114,5 +126,5 @@ static void proj_io(uint32_t cmd, const uint8_t *b, uint32_t n)
         px_reply(0x53u, r, 3u);
     }
 }
-static void app_install_mark(void) { }                          /* (ota.c tells the app an install starts; nothing to note here) */
+static void app_install_mark(void) { cfg.pad[1] |= QS_INSTALLED; settings_save(&cfg, sizeof cfg); }       /* ota.c: an install starts. The next start of this firmware shows the quick start again (if there are no projects of the player's) */
 #endif

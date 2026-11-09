@@ -1,0 +1,10 @@
+# the idle tips (build with -DTIP_IDLE=1500u -DTIP_EVERY=1500u): a tip after the quiet, the next one every so often, a touch closes it, HOME only closes it
+2200 shot
+3700 shot
+5200 shot
+6700 shot
+8200 shot
+8300 held 0x100
+8400 held 0
+8800 shot
+9000 end

@@ -1,0 +1,35 @@
+# PLAY in STEPS loops the one pattern; PLAY in the PLAY view plays the chain (the demo's is 1..8); a chain you build is saved with the project
+100 btn 12
+5000 btn 12
+5500 held 0x100
+5560 held 0
+5700 held 0x100
+5760 held 0
+5900 held 0x100
+5960 held 0
+6200 shot
+6300 btn 12
+15000 shot
+15100 btn 12
+15500 held 0x40
+15600 held 0
+15900 shot
+16000 keys 0x10
+16100 keys 0
+16200 btn 1
+16300 keys 0x1
+16400 keys 0
+16500 btn 1
+16600 keys 0x10
+16700 keys 0
+16800 btn 1
+16900 keys 0x40
+17000 keys 0
+17100 btn 1
+17200 btn 1
+17300 btn 0
+17600 shot
+17700 btn 12
+24000 shot
+24100 btn 12
+24300 end

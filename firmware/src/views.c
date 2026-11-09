@@ -14,11 +14,18 @@ static void vortex_floor(void);
 static struct { uint8_t slot, oct, view, magic, clk, pad[3]; } cfg;   /* the settings sector: where you were, and the MIDI clock (0 off, 1 send, 2 follow) */
 #define CLK_DEF 2u                                              /* it always followed an outside clock, so that stays */
 #define SET_OK 0xA6u
+#define DEMO_OK 0xD0u                                           /* cfg.pad[2]: the top nibble says the low bit is ours (older sectors have zero there: the demo is there); bit 0 = the demo was deleted */
+#define DEMO_GONE 1u
+#define QS_OK 0xA0u                                             /* cfg.pad[1]: the top nibble says the low bits are ours (an older settings sector has zeros there: the defaults) */
+#define QS_ALWAYS 1u                                            /* the quick start every time you switch on */
+#define QS_PICK 2u                                              /* the projects every time you switch on */
+#define QS_NOTIPS 4u                                            /* the tips are off (a new device has them on) */
+#define QS_INSTALLED 8u                                         /* an install started from here: the next start of this firmware is a fresh one (if there are no projects) */
 static uint32_t slot_cur;
 static uint32_t cur, page, view_now;
 static int32_t env_view;
 static uint32_t anim_t;                                         /* the floor and the smiley run on this */
-static uint32_t pick_on, pick_sel;
+static uint32_t pick_on, pick_sel, pick_del;                    /* pick_del: the 'delete the demo?' window is up */
 static uint32_t shock_ms;
 static uint32_t rnd_s;
 static uint32_t rnd(void) { rnd_s = rnd_s * 1664525u + 1013904223u; return rnd_s >> 8; }
@@ -486,6 +493,7 @@ static void pat_move(int32_t d)                                 /* PLAY, stopped
     b = d < 0 ? a - 1u : a + 1u;
     for (k = 0; k < STEPS; k++) { step_t t = pats[a][k]; pats[a][k] = pats[b][k]; pats[b][k] = t; }
     { uint8_t l = plen[a]; plen[a] = plen[b]; plen[b] = l; }
+    { uint32_t j; for (j = 0; j < chain_n; j++) { uint32_t v = chain[j]; chain[j] = (uint8_t)(v == a ? b : v == b ? a : v); } }       /* the chain follows the patterns */
     pat_idx = b; undo_has = 0; pf_i = b; pf_ms = fm1_ms | 1u;
 }
 static uint32_t pat_dup(void)                                   /* PLAY, stopped: a copy in the first empty pad, which becomes the one you're writing */
@@ -500,28 +508,57 @@ static uint32_t pat_dup(void)                                   /* PLAY, stopped
     return 1u;
 }
 
+static void tiny_num(int32_t x, int32_t y, uint32_t v, uint16_t c)       /* a number of one or two digits, 3 x 5 pixels each */
+{
+    static const uint16_t G[10] = {0x7B6F, 0x2C97, 0x73E7, 0x73CF, 0x5BC9, 0x79CF, 0x79EF, 0x7249, 0x7BEF, 0x7BCF};       /* 15 bits a digit, row by row, left bit first */
+    uint32_t d[2], n = 0, i, r, q;
+    if (v >= 10u) d[n++] = v / 10u;
+    d[n++] = v % 10u;
+    for (i = 0; i < n; i++)
+        for (r = 0; r < 5u; r++)
+            for (q = 0; q < 3u; q++)
+                if (G[d[i]] >> (14u - r * 3u - q) & 1u) cv_rect(x + (int32_t)(i * 4u + q), y + (int32_t)r, 1, 1, c);
+}
+static void chain_strip(int32_t y)                              /* the chain: sixteen boxes, a pattern number in each one used; the one playing is framed */
+{
+    uint32_t i, n = chain_n, pos = chain_pos;
+    for (i = 0; i < CHAIN_MAX; i++) {
+        int32_t x = 4 + (int32_t)i * 232 / (int32_t)CHAIN_MAX;
+        uint16_t col = C_CY;
+        if (i < n) {
+            uint32_t p = chain[i] % PATS, here = seq_run && seq_chain_on && i == pos;
+            cv_rect(x, y, 13, 18, here ? C_W : col);
+            cv_rect(x + 1, y + 1, 11, 16, here ? C_PINK : RGB(0, 40, 50));
+            tiny_num(x + (p + 1u >= 10u ? 3 : 5), y + 6, p + 1u, here ? C_K : C_W);
+        } else {
+            cv_rect(x, y + 15, 13, 1, C_RING);
+            if (i == n) cv_rect(x + 5, y + 6, 3, 3, C_RING);       /* (where the next one goes) */
+        }
+    }
+}
 static void scene_play(void)
 {
     uint32_t i, q;
     char nm[4];
     floor_rows((int32_t)Y_HDR, (int32_t)Y_LOW - 4, 3 + env_view / 2500 + shock_bump() / 2 + idle_bump(), anim_t);
     critter();
+    chain_strip(148);
     for (i = 0; i < PATS; i++) {
-        int32_t x = 4 + (int32_t)(i % 8u) * 29, y = 50 + (int32_t)(i / 8u) * 60;
+        int32_t x = 4 + (int32_t)(i % 8u) * 29, y = 47 + (int32_t)(i / 8u) * 48;
         uint32_t queued = 0, pos = 0, len = plen[i] ? plen[i] : STEPS, any = 0, k;
         uint16_t fr = i == pat_idx ? C_Y : C_RING;
         if (pf_ms && i == pf_i && fm1_ms - pf_ms < 400u && ((fm1_ms - pf_ms) / 100u & 1u) == 0u) fr = C_W;
         for (k = 0; k < STEPS; k++) if (pats[i][k].note) any = 1;
         for (q = cue_r; q != cue_w; q++) if (cue_q[q % CUEQ] == i && !queued) queued = q - cue_r + 1u;
         if (queued) fr = C_PINK;
-        cv_rect(x, y, 28, 56, fr);
-        cv_rect(x + 2, y + 2, 24, 52, i == pat_idx ? RGB(34, 30, 0) : C_K);
+        cv_rect(x, y, 28, 44, fr);
+        cv_rect(x + 2, y + 2, 24, 40, i == pat_idx ? RGB(34, 30, 0) : C_K);
         utoa3(nm, i + 1u);
         text_at(x + 3, y + 3, nm, i == pat_idx ? C_Y : any ? C_W : C_RING);
         if (queued) { nm[0] = (char)('0' + queued); nm[1] = 0; cv_rect(x + 17, y + 3, 9, 15, C_PINK); text_at(x + 18, y + 3, nm, C_K); }
-        if (any) tile_bars(x + 3, y + 20, 24, 32, pats[i], i == pat_idx ? C_Y : C_LIME, C_PINK);
-        if (i == pat_idx && seq_run) { pos = seq_step < len ? seq_step : 0u; cv_rect(x + 3 + (int32_t)pos * 24 / 16, y + 20, 1, 32, C_W); }
-        if (i == pat_idx) cv_rect(x + 3, y + 53, 24 * (int32_t)len / 16, 1, C_Y);
+        if (any) tile_bars(x + 3, y + 19, 24, 22, pats[i], i == pat_idx ? C_Y : C_LIME, C_PINK);
+        if (i == pat_idx && seq_run) { pos = seq_step < len ? seq_step : 0u; cv_rect(x + 3 + (int32_t)pos * 24 / 16, y + 19, 1, 22, C_W); }
+        if (i == pat_idx) cv_rect(x + 3, y + 41, 24 * (int32_t)len / 16, 1, C_Y);
     }
 }
 
@@ -534,6 +571,16 @@ static void slot_apply(const slot_t *sl)                        /* a project's p
     pat_idx = sl->pcur < PATS ? sl->pcur : 0u; cue_clear(); cur = 0;
     fx_load(&sl->fx);
 }
+static void chain_load(uint32_t i)                              /* the project's chain (none in an older project) */
+{
+    uint8_t r[CHAIN_REC];
+    uint32_t k, n;
+    slot_chain_rec(i, r);
+    n = chain_rec_n(r);
+    chain_n = 0;
+    for (k = 0; k < n; k++) chain[k] = r[1u + k];
+    chain_n = n; chain_pos = 0;
+}
 static void slot_pack(slot_t *sl)                               /* what plays, as a project */
 {
     uint32_t a, b;
@@ -541,18 +588,27 @@ static void slot_pack(slot_t *sl)                               /* what plays, a
     sl->kn = kn; sl->bpm = (uint8_t)seq_bpm; sl->pcur = (uint8_t)pat_idx; sl->used = 1; sl->pad = (uint8_t)(31u - vol_dec); sl->fx = rack;
 }
 static uint8_t bt_locked;                                       /* the Bluetooth demo is on: a locked project, in memory only (opening a project ends it) */
+static void demo_set(uint32_t gone)                             /* delete the demo for good, or bring it back; the flag is saved at once */
+{
+    demo_off = (uint8_t)(gone != 0u);
+    cfg.pad[2] = (uint8_t)(DEMO_OK | (gone ? DEMO_GONE : 0u));
+    settings_save(&cfg, sizeof cfg);
+}
 static void slot_load(uint32_t i)
 {
-    bt_locked = 0; demo_loop = i == 0u;
+    bt_locked = 0;
     slot_apply(slot_get(i));
+    chain_load(i);
     slot_cur = i;
 }
 static void slot_save(void)
 {
-    if (bt_locked || slot_cur == 0u) return;                    /* the demos are never saved */
+    if (bt_locked || (slot_cur == 0u && !demo_off)) return;     /* the demo is never saved (once it is deleted, project 1 is a project like the others) */
     slot_pack(&bank.s[slot_cur]);
+    chain_rec_put(bank.chain[slot_cur], chain, chain_n);
     bank_flush();
 }
+static void menu_win(const char *title, uint16_t col, int32_t h, int32_t y);
 static void scene_pick(void)
 {
     uint32_t i;
@@ -571,9 +627,16 @@ static void scene_pick(void)
         utoa3(nm, i + 1u);
         text_at(x + 5, y + 4, nm, i == pick_sel ? C_Y : C_RING);
         for (a = 0; a < n && a < 16u; a++) cv_rect(x + 30 + (int32_t)(a % 8u) * 4, y + 7 + (int32_t)(a / 8u) * 4, 3, 3, C_CY);      /* how many patterns have something in them */
-        if (i == 0u) { uint16_t lk = i == pick_sel ? C_Y : C_RING; cv_rect(x + 21, y + 10, 7, 5, lk); cv_rect(x + 22, y + 6, 1, 4, lk); cv_rect(x + 26, y + 6, 1, 4, lk); cv_rect(x + 22, y + 5, 5, 1, lk); }      /* KOROBEINIKI: a padlock */
+        if (i == 0u && !demo_off) { uint16_t lk = i == pick_sel ? C_Y : C_RING; cv_rect(x + 21, y + 10, 7, 5, lk); cv_rect(x + 22, y + 6, 1, 4, lk); cv_rect(x + 26, y + 6, 1, 4, lk); cv_rect(x + 22, y + 5, 5, 1, lk); }      /* KOROBEINIKI: a padlock */
         else if (!sl->used) cv_rect(x + 62, y + 8, 4, 4, C_RING);
         if (i == slot_cur) mini(x + 63, y + 16, 3u);
     }
     text_at(236 - text_w(&FONT_S, "HOME  Open"), 222, "HOME  Open", C_Y);
+    if (pick_del) {                                             /* hold EDIT on the demo: delete it? */
+        menu_win("Confirm", C_PINK, 112, 54);
+        text_mid(120, 92, "Delete the demo?", C_W);
+        text_mid(120, 108, "Project 1 becomes yours.", C_RING);
+        text_at(16, 54 + 112 - 21, "OCT+  Yes", C_Y);
+        text_at(224 - text_w(&FONT_S, "OCT-  No"), 54 + 112 - 21, "OCT-  No", C_Y);
+    }
 }
