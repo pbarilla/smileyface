@@ -31,7 +31,10 @@ static const mpage_t MP_KNOBS[] = {
 static const mpage_t MP_PLAY[] = {
     {"Patterns", M_PRESETS | M_SMALL, "Every project holds 16 patterns. Turn PRESETS to pick the one you're writing. While it plays, the new one waits for the loop to end."},
     {"Cue", M_KEYS, "Press a white key in PLAY to line up a pattern. It starts when this one ends. Stopped, it starts at once."},
-    {"Chain", M_KEYS | M_EDIT, "Press more keys to chain them in order. Press EDIT to clear the chain."},
+    {"Chain", M_KEYS | M_EDIT, "Press more keys to chain them in order. Tap EDIT to clear the chain."},
+    {"Copy", M_SEL, "Stop the music, then hold SEL to copy this pattern into the first empty pad."},
+    {"Look", M_SELECT, "Stop the music, then turn SELECT to move over the pads."},
+    {"Move", M_EDIT | M_SELECT, "Hold EDIT and turn SELECT to move this pattern along. The others shift to make room."},
 };
 static const mpage_t MP_PROJ[] = {
     {"Open", M_HOME | M_SELECT | M_SMALL, "Hold HOME for your 12 projects. Turn SELECT or ALGORITHM to pick one, then press HOME. OCT- leaves."},

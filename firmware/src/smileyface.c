@@ -112,7 +112,7 @@ static void app_main(void)
     uint32_t fake_b = 0, keys, prev = 0, btn_was = 0, hb_ms = 0, mid_ms = 0, arm_ms = 0, weird_next = 16000u, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
 #define bt_pack() do { cfg.pad[0] = (uint8_t)((brothers_mode & 3u) | bt_side << 2 | bt_patsync << 3 | bt_fxsync << 4 | bt_key << 5); cfg_dirty = 1; t_change = fm1_ms; } while (0)       /* the Bluetooth settings, kept with the others */
     uint32_t ext_ms = 0, tap_last = 0, tap_n = 0, tap_k = 0, tap_iv[4] = {0}, sel_was = 0, sel_t0 = 0, sel_used = 0;
-    uint32_t home_was = 0, home_t0 = 0, home_used = 0, edit_was = 0, edit_t0 = 0, edit_used = 0, sel_was2 = 0, sel_rot = 0, sel_keyed = 0;
+    uint32_t home_was = 0, home_t0 = 0, home_used = 0, edit_was = 0, edit_t0 = 0, edit_used = 0, sel_was2 = 0, sel_rot = 0, sel_keyed = 0, edit_was2 = 0;
     int32_t e;
 #ifndef SMILEY_HOST
     uint32_t fr_was = 0;
@@ -423,9 +423,15 @@ static void app_main(void)
         if (b & (1u << BTN_ENV) && (view_now == V_STEPS)) { PAT[cur].fl ^= F_ACC; dirty = 1; t_change = fm1_ms; redraw |= 7; }
         if (!sel_now && sel_was2 && !sel_rot && !sel_keyed && (view_now == V_STEPS)) { PAT[cur].fl ^= F_SLD; dirty = 1; t_change = fm1_ms; redraw |= 7; }      /* a tap on SEL (not a hold): a slide */
         if (sel_now && !sel_was2) { sel_rot = 0; sel_keyed = 0; }
+        if (view_now == V_PLAY && sel_now && !sel_used && fm1_ms - sel_t0 >= 600u) {                  /* hold SEL in PLAY: a copy of this pattern in the first empty pad */
+            sel_used = 1;
+            if (pat_dup()) { dirty = 1; t_change = fm1_ms; redraw |= 7; }
+        }
         sel_was2 = sel_now;
+        if (view_now == V_PLAY && !edit_now && edit_was2 && !edit_used) { cue_clear(); redraw |= 7; }       /* a tap on EDIT (not a hold with SELECT) clears the chain */
+        edit_was2 = edit_now;
         if (b & (1u << BTN_EDIT)) {
-            if (view_now == V_PLAY) { cue_clear(); redraw |= 7; }
+            if (view_now == V_PLAY) { /* (on release: see above) */ }
             else if (view_now == V_STEPS) { PAT[cur].note = 0; PAT[cur].fl = 0; cur = (cur + 1u) % STEPS; dirty = 1; t_change = fm1_ms; redraw |= 7; }
         }
         if (b & (1u << BTN_SEQ)) {                                          /* tap tempo: the average of the last four taps' gaps */
@@ -459,6 +465,13 @@ static void app_main(void)
             sel_rot = 1; pat_rotate(e > 0 ? 1 : -1); dirty = 1; t_change = fm1_ms; redraw |= 7;
         }
         else if (e && view_now == V_WALK) { walk_lane += e > 0 ? 1 : -1; walk_lane = walk_lane < 0 ? 0 : walk_lane > 7 ? 7 : walk_lane; redraw |= 2; }
+        else if (e && view_now == V_PLAY) {                                             /* PLAY, stopped: SELECT hovers over the pads; with EDIT held it moves this pattern along, the others shift to make room */
+            if (!seq_run) {
+                if (edit_now) { edit_used = 1; pat_move(e); dirty = 1; t_change = fm1_ms; }
+                else { int32_t v = (int32_t)pat_idx + (e < 0 ? -1 : 1); pat_pick((uint32_t)(v < 0 ? 0 : v >= (int32_t)PATS ? (int32_t)PATS - 1 : v)); }
+                redraw |= 7;
+            }
+        }
         else if (e && view_now != V_PLAY) { cur = (cur + STEPS + (uint32_t)(e % 16)) % STEPS; redraw |= 7; }
         e = fm1_enc_take(ENC_ALGORITHM);
         if (e) { int32_t v = (int32_t)page + (e < 0 ? -1 : 1); page = (uint32_t)(v < 0 ? 0 : v >= (int32_t)PAGES ? (int32_t)PAGES - 1 : v); redraw |= 4; }

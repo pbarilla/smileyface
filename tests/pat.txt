@@ -1,0 +1,28 @@
+# PLAY view: hold SEL copies the pattern, SELECT hovers, EDIT held + SELECT moves it (insert), a tap on EDIT clears the chain; stopped
+1000 held 0x100
+1100 held 0
+1400 held 0x100
+1500 held 0
+1800 held 0x100
+1900 held 0
+2300 shot
+2400 held 0x8
+3200 held 0
+3500 shot
+3600 enc 0 -1
+3700 enc 0 -1
+3800 enc 0 -1
+3900 shot
+4000 held 0x40
+4050 enc 0 -1
+4120 enc 0 -1
+4190 held 0
+4400 shot
+4500 held 0x40
+4550 enc 0 1
+4620 held 0
+4900 shot
+5000 held 0x40
+5100 held 0
+5400 shot
+6000 end

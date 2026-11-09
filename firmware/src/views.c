@@ -477,6 +477,29 @@ static void tile_bars(int32_t x, int32_t y, int32_t w, int32_t h, const step_t *
     }
 }
 
+static uint32_t pf_i, pf_ms;                                    /* the pad that just moved or was copied: it flashes */
+static uint32_t pat_has(uint32_t p) { uint32_t k; for (k = 0; k < STEPS; k++) if (pats[p][k].note) return 1u; return 0u; }
+static void pat_move(int32_t d)                                 /* PLAY, stopped: the pattern steps one pad over and the one it passes shifts back (so a few clicks insert it; no wrap) */
+{
+    uint32_t a = pat_idx, b, k;
+    if (seq_run || (d < 0 && a == 0u) || (d > 0 && a + 1u >= PATS)) return;
+    b = d < 0 ? a - 1u : a + 1u;
+    for (k = 0; k < STEPS; k++) { step_t t = pats[a][k]; pats[a][k] = pats[b][k]; pats[b][k] = t; }
+    { uint8_t l = plen[a]; plen[a] = plen[b]; plen[b] = l; }
+    pat_idx = b; undo_has = 0; pf_i = b; pf_ms = fm1_ms | 1u;
+}
+static uint32_t pat_dup(void)                                   /* PLAY, stopped: a copy in the first empty pad, which becomes the one you're writing */
+{
+    uint32_t f, k;
+    if (seq_run) return 0u;
+    for (f = 0; f < PATS; f++) if (f != pat_idx && !pat_has(f)) break;
+    if (f >= PATS) return 0u;
+    for (k = 0; k < STEPS; k++) pats[f][k] = pats[pat_idx][k];
+    plen[f] = plen[pat_idx];
+    pat_idx = f; cur = 0; undo_has = 0; pf_i = f; pf_ms = fm1_ms | 1u;
+    return 1u;
+}
+
 static void scene_play(void)
 {
     uint32_t i, q;
@@ -487,6 +510,7 @@ static void scene_play(void)
         int32_t x = 4 + (int32_t)(i % 8u) * 29, y = 50 + (int32_t)(i / 8u) * 60;
         uint32_t queued = 0, pos = 0, len = plen[i] ? plen[i] : STEPS, any = 0, k;
         uint16_t fr = i == pat_idx ? C_Y : C_RING;
+        if (pf_ms && i == pf_i && fm1_ms - pf_ms < 400u && ((fm1_ms - pf_ms) / 100u & 1u) == 0u) fr = C_W;
         for (k = 0; k < STEPS; k++) if (pats[i][k].note) any = 1;
         for (q = cue_r; q != cue_w; q++) if (cue_q[q % CUEQ] == i && !queued) queued = q - cue_r + 1u;
         if (queued) fr = C_PINK;

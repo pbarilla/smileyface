@@ -37,7 +37,8 @@
   {
    "id": "SELECT",
    "name": "SELECT",
-   "STEPS": "Move the cursor. SEL held: wrap the pattern"
+   "STEPS": "Move the cursor. SEL held: wrap the pattern",
+   "PLAY": "Stopped: pick a pad. EDIT held: move the pattern along (the others shift)"
   },
   {
    "id": "PRESETS",
@@ -90,7 +91,8 @@
   {
    "id": "SEL",
    "name": "SEL",
-   "STEPS": "Tap: slide on the step. Held: write with a slide"
+   "STEPS": "Tap: slide on the step. Held: write with a slide",
+   "PLAY": "Stopped, hold: copy the pattern to the first empty pad"
   },
   {
    "id": "EDIT",
