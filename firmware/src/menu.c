@@ -4,10 +4,10 @@
 static uint32_t bt_sel;                                         /* the Bluetooth page: which of Sync, Sidechain, Patterns */
 static uint32_t menu_on, menu_sel, dice_t0, dice_prog, dice_armed;      /* menu_on: 1 the list, 2 Factory Reset?, 3 Roll The Dice? */
 #define DICE_MS 1500u
+#define MENU_ROWS 9u                                            /* (all of them; the Restore Demos row shows only while the demo is deleted: `menu_n()` rows, `menu_id()` maps a line to its row) */
 static uint32_t menu_n(void) { return demo_off ? MENU_ROWS : MENU_ROWS - 1u; }          /* the lines shown: Restore Demos only once the demo was deleted */
 static uint32_t menu_id(uint32_t i) { return !demo_off && i >= 6u ? i + 1u : i; }      /* a line's row: 0 Quick Start Always .. 5 Roll The Dice, 6 Restore Demos, 7 Factory Reset, 8 Pierre */
-#define MENU_ROWS 9u                                            /* (all of them; the Restore Demos row shows only while the demo is deleted: `menu_n()` rows, `menu_id()` maps a line to its row) */
-#define MENU_ROWS_X                                            /* Quick Start Always, Show Tips, Projects At Start, MIDI Clock, Brothers Link, Roll The Dice, Restore Demos, Factory Reset, Pierre */
+/* the rows: Quick Start Always, Show Tips, Projects At Start, MIDI Clock, Brothers Link, Roll The Dice, Restore Demos, Factory Reset, Pierre */
 
 /* THE BLUETOOTH DEMO: a locked acid line to play with all three brothers (D minor, 124 BPM): pattern 1 the groove, pattern 2 the lift */
 static void bt_demo_load(void)
