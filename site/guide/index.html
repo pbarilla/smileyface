@@ -142,20 +142,10 @@
 
 <section id="keyboard">
   <h2>MIDI keyboard</h2>
-  <p class="plain">Plug a keyboard's 5-pin MIDI out into the FM-1's 3.5 mm jack with a 5-pin to 3.5 mm adaptor (the kind that works with Teenage Engineering gear). The FM-1 can't power the keyboard, so give it its own power.</p>
   <ul>
-    <li>Play. Hit a key hard (velocity 100 and up) for an accent. Hold one key and press another before you let go of the first, and the bass slides, like a real 303. Let go of the second and it slides back.</li>
-    <li>The pitch wheel bends two semitones. The mod wheel opens the filter. Any keyboard does this.</li>
-    <li>The rest is made for the Arturia MiniLab 3. Open Arturia's MIDI Control Center and set its eight knobs to <b>Relative</b>. Any other keyboard works too, if it can send the same numbers.</li>
+    <li>Plug a keyboard's 5-pin MIDI out into the FM-1's 3.5 mm jack with an adaptor. Get a good one.</li>
+    <li>The keys, the pitch and mod wheels, the knobs, the pads (with <code>FX</code> on), Play and Stop all work. Hold one key and press another and the bass slides.</li>
   </ul>
-  <table>
-    <tr><th>Control</th><th>Sends</th><th>What it does</th></tr>
-    <tr><td>Knobs 1 to 4</td><td>CC 74, 71, 76, 77</td><td>The four knobs on screen.</td></tr>
-    <tr><td>Knobs 5 to 8</td><td>CC 93, 18, 19, 16</td><td>The four knobs of the next page.</td></tr>
-    <tr><td>Main knob</td><td>CC 114</td><td>The same as <code>ALGORITHM</code>: the page of knobs.</td></tr>
-    <tr><td>Pads 1 to 16</td><td>Notes 36 to 51, channel 10</td><td>With <code>FX</code> on, the 16 punch-in pads.</td></tr>
-    <tr><td>Play, Stop</td><td>CC 107, 106</td><td>Start and stop.</td></tr>
-  </table>
 </section>
 
 <section id="more">
