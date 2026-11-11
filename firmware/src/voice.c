@@ -50,6 +50,7 @@ static volatile int32_t env_vis;                    /* the filter envelope as th
 /* events from the main loop (keys): 1 = note on (note, accent, slide), 2 = gate off */
 #define EVQ 16u
 static volatile uint32_t ev_q[EVQ], ev_w, ev_r;
+static volatile int32_t live_bend, live_mod;               /* the keyboard's pitch wheel (1/256 semitone) and mod wheel (0..127, opens the filter): the main loop writes, the voice reads */
 static void ev_push(uint32_t v) { ev_q[ev_w % EVQ] = v; ev_w++; }
 static void voice_on(uint32_t note, uint32_t acc, uint32_t slide) { ev_push(1u | note << 8 | acc << 16 | slide << 17); }
 static void voice_off(void) { ev_push(2u); }
@@ -296,7 +297,7 @@ static void voice_render(int32_t *out, uint32_t n)
                 vo.rs = vo.rs * 1664525u + 1013904223u; vo.dg1 = (int32_t)(vo.rs >> 16) - 32768;
             }
             vo.dr0 += (vo.dg0 - vo.dr0) >> 11; vo.dr1 += (vo.dg1 - vo.dr1) >> 11;
-            pp = vo.p + bfx_pitch + (ax_up ? 3072 : 0) - (ax_dn ? 3072 : 0) + (W_DRIFT ? mulq(vo.dr0 + vo.nd0, W_DRIFT == 1u ? 72 : 170) : 0);
+            pp = vo.p + live_bend + bfx_pitch + (ax_up ? 3072 : 0) - (ax_dn ? 3072 : 0) + (W_DRIFT ? mulq(vo.dr0 + vo.nd0, W_DRIFT == 1u ? 72 : 170) : 0);
             pp = pp < 0 ? 0 : pp > 126 * 256 ? 126 * 256 : pp;
             {
                 uint32_t n = (uint32_t)pp >> 8, a = NOTE_INC[n], b = NOTE_INC[n + 1u];
@@ -318,6 +319,7 @@ static void voice_render(int32_t *out, uint32_t n)
             amt = ENV_AMT[kn.env];
             if (accx && swp_on) amt += mulq(amt + 30, 8192 + (vo.acc_cap >> 1) + (int32_t)kn.acc * 1000);
             idx = (int32_t)kn.cut * 7 + mulq(e, amt);
+            idx += (live_mod * 100) >> 7;                           /* the mod wheel: the cutoff up */
             if (W_DRIFT) idx += mulq(vo.dr1 + vo.nd1, W_DRIFT == 1u ? 24 : 64);
             if (ax_swp) { int32_t t = (int32_t)(vo.tick >> 8 & 255u); t = t < 128 ? t : 255 - t; idx += (t - 64) * 2; }          /* SWEEP: the cutoff goes up and down */
             if (idx > 255) idx = 255;

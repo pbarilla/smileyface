@@ -110,6 +110,34 @@ static void pat_chain(uint32_t p)                               /* a key in PLAY
 }
 #include "projio.c"
 
+/* a keyboard's pads on the jack (MiniLab 3: notes 36-51 on channel 10, or in its CC pad mode CC 56-63, 127 down / 0 up): the pad's number 0..15, or 99 */
+static uint32_t pad_of(uint32_t st, uint32_t d1, uint32_t d2, uint32_t *on)
+{
+    static const uint8_t PC[8] = {0, 1, 2, 3, 6, 7, 4, 5};
+    uint32_t ty = st & 0xF0u;
+    if ((st & 0xFu) == 9u && d1 >= 36u && d1 < 52u && (ty == 0x90u || ty == 0x80u)) { *on = ty == 0x90u && d2; return d1 - 36u; }
+    if (ty == 0xB0u && d1 >= 56u && d1 <= 63u) { *on = d2 >= 64u; return PC[d1 - 56u]; }
+    return 99u;
+}
+static uint32_t mpd, mpu;                          /* pad edges for the punch-in layer, as key masks */
+/* a keyboard on the TRS jack: the keys held, so that a second key slides and letting go of it goes back to the first */
+static uint8_t sk_k[8], sk_n;
+static void sk_on(uint32_t note)
+{
+    uint32_t i;
+    for (i = 0; i < sk_n; i++) if (sk_k[i] == note) { for (sk_n--; i < sk_n; i++) sk_k[i] = sk_k[i + 1u]; break; }
+    if (sk_n == 8u) { for (i = 1; i < 8u; i++) sk_k[i - 1u] = sk_k[i]; sk_n = 7u; }
+    sk_k[sk_n++] = (uint8_t)note;
+}
+static uint32_t sk_off(uint32_t note)                      /* 0..127: the key to go back to; 128: that was the last one; 129: it was not the sounding one */
+{
+    uint32_t i, top;
+    for (i = 0; i < sk_n && sk_k[i] != note; i++) ;
+    if (i == sk_n) return 129u;
+    top = i + 1u == sk_n;
+    for (sk_n--; i < sk_n; i++) sk_k[i] = sk_k[i + 1u];
+    return top ? (sk_n ? sk_k[sk_n - 1u] : 128u) : 129u;
+}
 static void app_main(void)
 {
     uint32_t fake_b = 0, keys, prev = 0, btn_was = 0, hb_ms = 0, mid_ms = 0, arm_ms = 0, weird_next = 16000u, redraw = 7, last_draw = 0, dirty = 0, t_change = 0, held_note = 0, k, cfg_dirty = 0;
@@ -193,12 +221,42 @@ static void app_main(void)
             ax_acc = pfx_mask >> 8 & 1u; ax_sld = pfx_mask >> 9 & 1u; ax_up = pfx_mask >> 10 & 1u; ax_dn = pfx_mask >> 11 & 1u; ax_res = pfx_mask >> 12 & 1u; ax_swp = pfx_mask >> 13 & 1u; ax_short = pfx_mask >> 14 & 1u;
             bt_swg_on = (uint8_t)(brothers_mode == 2u && bt_patsync && brothers_pat() != 0xFFu); bt_swg = (uint8_t)(brothers_swing() > 40u ? 40u : brothers_swing());
             while (midi_get(&st, &d1, &d2) || bt_get(&st, &d1, &d2)) {
-                uint32_t ty = st & 0xF0u;
+                uint32_t ty = st & 0xF0u, pon = 0;
                 if (st >= 0xF8u && (d1 == 0x55u ? brothers_mode != 2u : cfg.clk != 2u)) continue;                                                                          /* the clock and transport: only when MIDI Clock is Follow */
                 if (st == 0xF8u) { if (d1 == 0x55u) { uint32_t nb = brothers_bpm(); if (nb >= 30u && nb <= 255u) seq_bpm = nb; } ext_ms = fm1_ms; ext_in++; if (!ext_on) { ext_on = 1; ext_in = 1; ext_seen_reset(); } }          /* MIDI clock */
                 else if (st == 0xFAu) { seq_play(); redraw |= 7; }                                                                  /* start */
                 else if (st == 0xFBu) { seq_run = 1; redraw |= 7; }                                                                 /* continue */
                 else if (st == 0xFCu) { seq_stop(); redraw |= 7; }                                                                  /* stop */
+                else if (midi_src && pad_of(st, d1, d2, &pon) < 16u) { if (pfx_on) { uint32_t pb = 1u << WHITE_KEY[pad_of(st, d1, d2, &pon)]; if (pon) mpd |= pb; else mpu |= pb; } }       /* the pads: the punch-in pads, with the layer open */
+                else if (ty == 0xE0u) live_bend = (int32_t)(d1 | d2 << 7) - 8192 >> 4;                                                 /* the pitch wheel: +-2 semitones */
+                else if (midi_src && ty == 0x90u && d2) { sk_on(d1); voice_on(d1, d2 >= 100u, sk_n > 1u); }                                 /* a keyboard on the jack: a second key held down slides, like the 303's */
+                else if (midi_src && (ty == 0x80u || ty == 0x90u)) { uint32_t back = sk_off(d1); if (back < 128u) voice_on(back, 0, 1); else if (back == 128u && !seq_run) voice_off(); }
+                else if (ty == 0xB0u && midi_src) {                                                                              /* from the jack the test numbers below do not act (a keyboard's buttons send them: the MiniLab's transport is 106 107 108); these are the keyboard's own */
+                    static const uint8_t KC[8] = {74, 71, 76, 77, 93, 18, 19, 16};         /* the MiniLab 3's knobs 1-8, set to Relative (64 + clicks) */
+                    static int32_t ka[8], km;
+                    uint32_t j = 0;
+                    while (j < 8u && KC[j] != d1) j++;
+                    if (d1 == 1u) live_mod = d2;                                                                                  /* the mod wheel: the cutoff */
+                    else if (d1 == 107u && d2 >= 64u) { if (!seq_run) seq_play(); redraw |= 7; }                                   /* Play, Stop */
+                    else if (d1 == 106u && d2 >= 64u) { if (seq_run) seq_stop(); redraw |= 7; }
+                    else if (d1 == 114u) {                                                                                         /* the main knob: ALGORITHM, the page of knobs */
+                        if (!menu_on && !pick_on && !fx_on) {
+                            int32_t n;
+                            km += (int32_t)d2 - 64; n = km; km = 0;
+                            if (n) { int32_t v = (int32_t)page + n; page = (uint32_t)(v < 0 ? 0 : v >= (int32_t)PAGES ? (int32_t)PAGES - 1 : v); knob_ms = fm1_ms | 1u; redraw |= 4; }
+                        } else km = 0;
+                    } else if (j < 8u) {                                                                                           /* knobs 1-4: the page on show, 5-8: the next one */
+                        if (!menu_on && !pick_on && !fx_on) {
+                            int32_t n;
+                            ka[j] += (int32_t)d2 - 64; n = ka[j] / 4;
+                            if (n) {
+                                uint32_t pg = page + (j >> 2);
+                                ka[j] -= n * 4;
+                                if (pg < PAGES) { knob_turn(pg, j & 3u, n); wd_touch(pg, j & 3u); wd_check(); dirty = 1; t_change = fm1_ms; knob_ms = fm1_ms | 1u; redraw |= 6; }
+                            }
+                        } else ka[j] = 0;
+                    }
+                }
                 else if (ty == 0x90u && d2) voice_on(d1, d2 >= 100u, 0);
                 else if (ty == 0x80u || ty == 0x90u) { if (!seq_run) voice_off(); }
                 else if (ty == 0xB0u) {
@@ -366,7 +424,7 @@ static void app_main(void)
         }
         if (b & (1u << BTN_FX) && !pick_on) { if (pfx_on) pfx_close(); else pfx_on = 1; redraw |= 7; }                          /* FX: the punch-in effects (the old rack: fx_on ^= 1u) */
         if (pfx_on && !menu_on) {                                                                                         /* the layer: the white keys are pads */
-            pfx_input(down, up);
+            pfx_input(down | mpd, up | mpu); mpd = mpu = 0;
             if (b & (1u << BTN_PLAY)) { if (seq_run) seq_stop(); else seq_play(); }
             edit_was = edit_now; sel_was = sel_now; sel_was2 = sel_now;
             fm1_led_key(BTN_PLAY, seq_run); fm1_led_key(BTN_FX, 1);
