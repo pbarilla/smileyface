@@ -18,7 +18,7 @@ static const mpage_t MP_QUICK[] = {
     {"", M_ALGO | M_KNOBS | M_SMALL, "Twist ALGORITHM to view all the knobs and switches."},
     {"", M_HOME | M_SMALL, "Tap HOME. Try it and find out."},
     {"", M_PLAY | M_SMALL, "Press PLAY in STEPS to loop the pattern you are on. In the PLAY view, add patterns to a chain with OCT+, then press PLAY to hear them all."},
-    {"", M_GLO | M_HOME | M_SMALL, "Press GLO for help on any screen. Hold HOME for your projects. Press GLO and HOME together for the menu."},
+    {"", M_GLO | M_HOME | M_SMALL, "Press GLO for help on any screen. Hold HOME for your projects. Press GLO and HOME together for the menu: its first line starts a lesson."},
     {"", M_QR, "Find the full manual at"},
 };
 static const mpage_t MP_STEPS[] = {
@@ -63,6 +63,7 @@ static const mpage_t MP_FX[] = {
 };
 static const mpage_t MP_MENU[] = {
     {"Menu", M_GLO | M_HOME | M_SMALL, "Press GLO and HOME together to open the menu. Turn SELECT, then press OCT+ to choose. HOME closes it."},
+    {"Lessons", M_KNOBS | M_OCTU | M_SMALL, "The first line of the menu opens the lessons. A tick marks the ones you finished. Turn SELECT to pick one and press OCT+. A card says what to do and goes green when you have. GLO hides it. The menu or the projects end it, and your own project comes back."},
     {"Wipe", M_OCTU | M_SMALL, "Factory Reset wipes your projects and brings the demo back. Roll The Dice randomizes every pattern in all of them. Neither can be undone."},
     {"Restore Demos", M_OCTU | M_SMALL, "Press OCT+ on Restore Demos to bring back the demo you deleted. Project 1 must be empty: if it holds your project, the line reads Slot 1 In Use."},
     {"MIDI Clock", M_OCTU | M_SMALL, "Press OCT+ to switch between Off, Send and Follow. Send gives your tempo to other gear. Follow takes theirs, and is the default."},
@@ -71,7 +72,7 @@ static const mpage_t MP_MENU[] = {
 };
 static const mpage_t MP_BT[] = {
     {"Sync", M_OCTU | M_SMALL, "Open Brothers Link in the menu. Set Sync to Lead on one FM-1 and to Follow on the others. Press OCT+ to change it. It is always Off after power-up."},
-    {"Options", M_OCTU | M_SMALL, "Sidechain ducks the bass on every kick from the leader. Patterns and Key follow what the leader plays."},
+    {"Options", M_OCTU | M_SMALL, "Sidechain ducks the bass on every kick from the leader. Patterns follows the leader's pattern and skips one with nothing in it. Key follows what the leader plays."},
     {"Punch-in FX", M_FX | M_SMALL, "Hold pads 1 to 8 on the leader and every follower with Punch-in FX On plays them too."},
     {"Demo", M_OCTU | M_SMALL, "Demo loads a locked acid line to play along. Nothing in it is saved. Open any project to leave it."},
 };

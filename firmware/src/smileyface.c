@@ -50,7 +50,8 @@ static void app_audio(int32_t *out, uint32_t n)
 
 /* knobs count as being touched */
 static uint32_t act_ms;
-static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) act_ms = fm1_ms; return v; }
+static uint32_t les_kclk;                                       /* knob clicks so far (a lesson's knob step wants a few) */
+static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) { act_ms = fm1_ms; if (e >= ENC_KNOB1 && e <= ENC_KNOB1 + 3u) les_kclk += (uint32_t)(v < 0 ? -v : v); } return v; }
 #define fm1_enc_take enc_act
 #include "look.c"
 #include "views.c"
@@ -60,6 +61,7 @@ static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) act_ms 
 #include "manual.c"
 #include "menu.c"
 #include "tips.c"
+#include "lessons.c"
 
 static uint32_t paint_max, draw_max, loop_max;                   /* the slowest screen, the slowest drawing of it, and the slowest turn of the main loop, in ms (heartbeat CC 119, 120, 121) */
 static void paint(uint32_t y0, uint32_t y1)                     /* rows y0 .. y1 of the screen */
@@ -85,6 +87,8 @@ static void paint(uint32_t y0, uint32_t y1)                     /* rows y0 .. y1
             }
             if (y0 + h > Y_LOW - 4u) scene_low();
         }
+        if (les_card_on()) scene_lcard();
+        if (les_reading()) scene_lread();
         if (tip_on && !man_on && !menu_on && !pick_on && !pfx_on) scene_tip();
         if (!man_on && !menu_on && !pierre_on && !pick_on && !fx_on && !tip_on) wd_post();
         cv_oy = 0;
@@ -155,7 +159,12 @@ static void app_main(void)
     splash_flyer();
 #endif
     bank_load();
-    if (settings_load(&cfg, sizeof cfg) != 0 || cfg.magic != SET_OK) {                  /* a new device, or a new firmware */
+    { int ld = settings_load(&cfg, sizeof cfg);
+      if (ld != 0) { struct { uint8_t slot, oct, view, magic, clk, pad[3], les[2]; } o10; if (settings_load(&o10, sizeof o10) == 0 && o10.magic == SET_OK) { memcpy(&cfg, &o10, sizeof o10); ld = 0; } }       /* (the sector with room for 16 lessons) */
+      if (ld != 0) { struct { uint8_t slot, oct, view, magic, clk, pad[3]; } o8; if (settings_load(&o8, sizeof o8) == 0 && o8.magic == SET_OK) { memcpy(&cfg, &o8, sizeof o8); ld = 0; } }       /* (the sector before the lessons list) */
+      if (ld != 0) cfg.magic = 0; }
+    memcpy(les_dn, cfg.les, sizeof les_dn);
+    if (cfg.magic != SET_OK) {                  /* a new device, or a new firmware */
         struct { uint8_t slot, oct, view, magic; } old;                                  /* the settings from before the MIDI clock: four bytes */
         if (settings_load(&old, sizeof old) == 0 && old.magic == SET_OK) { cfg.slot = old.slot; cfg.oct = old.oct; cfg.view = old.view; }
         else { cfg.slot = 0; cfg.oct = 1; cfg.view = 0; }
@@ -195,6 +204,7 @@ static void app_main(void)
         b |= fake_b; fake_b = 0;
         g_dirty = dirty;
         slot0_busy = (uint8_t)(demo_off && (bank.s[0].used || (slot_cur == 0u && dirty)));
+        if (les_on && (menu_on || pick_on || px_open_req)) { dirty = les_exit(); cfg_dirty = 1; t_change = fm1_ms; redraw |= 7; }                    /* the menu, the projects or a project over USB end a lesson: yours comes back first */
         if (px_open_req) {                                              /* a project came in over USB: open it */
             uint32_t sl = px_open_req - 1u;
             px_open_req = 0;
@@ -214,7 +224,7 @@ static void app_main(void)
             }
             else if (brothers_mode == 2u && bt_patsync && seq_run) {                                                            /* a follower: the leader's pattern, at the end of this one */
                 uint32_t p = brothers_pat();
-                if (p != 0xFFu && p != bt_last) { bt_last = (uint8_t)p; if (p < PATS && p != pat_idx) pat_pick(p); }
+                if (p != 0xFFu && p != bt_last) { bt_last = (uint8_t)p; if (p < PATS && p != pat_idx) { uint32_t s, any = 0; for (s = 0; s < STEPS; s++) any |= pats[p][s].note; if (any) pat_pick(p); } }       /* (a pattern with nothing in it: stay where we are) */
             } else if (brothers_mode != 2u) bt_last = 0xFFu;
             bt_scale = (uint8_t)(brothers_mode == 2u && bt_key ? brothers_scale() : 0u);                                         /* a follower: the leader's key, punch-in effects and swing */
             bfx_mask = (pfx_mask & 0xFFu) | (brothers_mode == 2u && bt_fxsync ? brothers_fx() & 0xFFu : 0u);                       /* the shared pads: ours, and the leader's */
@@ -329,11 +339,12 @@ static void app_main(void)
         env_now = fm1_in.buttons >> BTN_ENV & 1u;
         if (home_now && !home_was) {
             home_t0 = fm1_ms; home_used = tip_was;
-            if (glo_now && !menu_on) { menu_on = 1; menu_sel = 0; man_on = 0; man_lock = 0; pick_on = 0; home_used = 1; redraw |= 7; }          /* GLO + HOME: the menu */
+            if (glo_now && !menu_on) { menu_on = 1; menu_grp = 0; menu_sel = 0; man_on = 0; man_lock = 0; pick_on = 0; home_used = 1; redraw |= 7; }          /* GLO + HOME: the menu */
         }
         if (home_now && !home_used && fm1_ms - home_t0 >= 600u && !pick_on && !man_on && !menu_on) { home_used = 1; pick_on = 1; pick_sel = slot_cur; redraw |= 7; }     /* hold HOME: the projects */
         if (!home_now && home_was && !home_used) {                                                        /* tap HOME: leave what is open, open the project in the frame, or the next view */
-            if (menu_on == 4u) menu_on = 1;                                                           /* back from the Bluetooth page */
+            if (les_reading()) les_hide = 1;                                                          /* a page to read: HOME puts it away (GLO brings it back) */
+            else if (menu_on == 4u) menu_on = 1;                                                      /* back from the Bluetooth page */
             else if (menu_on) { menu_on = 0; dice_t0 = 0; dice_prog = 0; }
             else if (man_on) { if (man_lock) { cfg_dirty = 1; t_change = fm1_ms; } man_on = 0; man_lock = 0; if (start_pick) { pick_on = 1; pick_sel = slot_cur; start_pick = 0; } }
             else if (pick_on && pick_del) pick_del = 0;                                               /* HOME closes the delete window */
@@ -347,13 +358,19 @@ static void app_main(void)
             redraw |= 7;
         }
         home_was = home_now;
-        if (b & (1u << BTN_GLO) && home_now && !menu_on) { menu_on = 1; menu_sel = 0; man_on = 0; man_lock = 0; pick_on = 0; home_used = 1; redraw |= 7; b &= ~(1u << BTN_GLO); }       /* HOME first, then GLO: the menu */
+        if (b & (1u << BTN_GLO) && home_now && !menu_on) { menu_on = 1; menu_grp = 0; menu_sel = 0; man_on = 0; man_lock = 0; pick_on = 0; home_used = 1; redraw |= 7; b &= ~(1u << BTN_GLO); }       /* HOME first, then GLO: the menu */
+        if ((b & (1u << BTN_GLO)) && les_on && !man_on && !menu_on && !pick_on) { les_hide ^= 1u; redraw |= 7; b &= ~(1u << BTN_GLO); }          /* in a lesson GLO puts the card away and brings it back */
         if (b & (1u << BTN_GLO) && !man_on && !menu_on) {                                                              /* the manual, at the chapter for where you are */
             if (!pick_on && !pfx_on && knob_ms && fm1_ms - knob_ms < 12000u) man_open(MC_KNOBS, 2u + page);                     /* a knob page you just touched: what each of its knobs does */
             else man_open(pick_on ? MC_PROJ : pfx_on ? MC_FX : view_now == V_STEPS ? MC_STEPS : view_now == V_PLAY ? MC_PLAY : MC_QUICK, 0u);          /* (the odd views are not explained: try it and find out) */
             redraw |= 7;
             b &= ~(1u << BTN_GLO);
         }
+        if (les_tick()) redraw |= 4;
+        if (les_saved) { les_saved = 0; memcpy(cfg.les, les_dn, sizeof cfg.les); cfg_dirty = 1; t_change = fm1_ms; }
+        if (les_reading() && (b & (1u << BTN_OCT_UP))) { les_read_next(); b &= ~(1u << BTN_OCT_UP); redraw |= 7; }       /* a page to read: OCT+ goes on */
+        if (les_on && les_fin && (b & (1u << BTN_OCT_UP))) { les_enter((les_i + 1u) % LES_N, 0); b &= ~(1u << BTN_OCT_UP); redraw |= 7; }          /* the last card: OCT+ starts the next lesson */
+        if (les_on && les_fin && (b & (1u << BTN_OCT_DOWN))) { dirty = les_exit(); cfg_dirty = 1; t_change = fm1_ms; b &= ~(1u << BTN_OCT_DOWN); redraw |= 7; }       /* ... and OCT- ends it */
         if (menu_on) {
             uint32_t oct_up = fm1_in.buttons >> BTN_OCT_UP & 1u;
             e = fm1_enc_take(ENC_SELECT) + fm1_enc_take(ENC_PRESETS);
@@ -364,15 +381,17 @@ static void app_main(void)
                 if (e) { int32_t v = (int32_t)menu_sel + (e > 0 ? 1 : -1); menu_sel = (uint32_t)(v < 0 ? 0 : v > (int32_t)menu_n() - 1 ? (int32_t)menu_n() - 1 : v); redraw |= 7; }
                 if (b & (1u << BTN_OCT_UP)) {
                     const uint32_t mid = menu_id(menu_sel);
-                    if (mid == 8u) { pierre_on ^= 1u; menu_on = 0; }
+                    if (mid >= 20u) { menu_grp = mid - 19u; menu_sel = 0; }                                                                 /* a group */
+                    else if (mid == 9u) { les_list_open(); menu_on = 5u; }
+                    else if (mid == 8u) { pierre_on ^= 1u; menu_on = 0; }
                     else if (mid == 7u) { menu_on = 2u; dice_t0 = dice_prog = dice_armed = 0; }                                               /* Factory Reset? */
-                    else if (mid == 6u) { if (demo_off && !slot0_busy) { demo_set(0u); menu_sel = 5u; if (slot_cur == 0u) { slot_load(0u); undo_has = 0; } } }                 /* Restore Demos: the demo is back at once, unless project 1 holds something */
+                    else if (mid == 6u) { if (demo_off && !slot0_busy) { demo_set(0u); menu_sel = 0u; if (slot_cur == 0u) { slot_load(0u); undo_has = 0; } } }                 /* Restore Demos: the demo is back at once, unless project 1 holds something */
                     else if (mid == 5u) { menu_on = 3u; dice_t0 = dice_prog = dice_armed = 0; }                                               /* Roll The Dice? */
                     else if (mid == 4u) { menu_on = 4u; bt_sel = 0; }                                                                       /* the Bluetooth page */
                     else if (mid == 3u) { cfg.clk = (uint8_t)((cfg.clk + 1u) % 3u); clk_send = cfg.clk == 1u; if (cfg.clk != 2u) ext_on = 0; cfg_dirty = 1; t_change = fm1_ms; }          /* MIDI Clock: off, send, follow */
-                    else { cfg.pad[1] ^= (uint8_t)(menu_sel == 0u ? QS_ALWAYS : menu_sel == 1u ? QS_NOTIPS : QS_PICK); cfg_dirty = 1; t_change = fm1_ms; }       /* a switch: the line says Yes or No */
+                    else { cfg.pad[1] ^= (uint8_t)(mid == 0u ? QS_ALWAYS : mid == 1u ? QS_NOTIPS : QS_PICK); cfg_dirty = 1; t_change = fm1_ms; }       /* a switch: the line says Yes or No */
                     redraw |= 7; }
-                if (b & (1u << BTN_OCT_DOWN)) { menu_on = 0; redraw |= 7; }
+                if (b & (1u << BTN_OCT_DOWN)) { if (menu_grp) { menu_sel = menu_grp; menu_grp = 0; } else menu_on = 0; redraw |= 7; }       /* OCT-: up a level, then closes */
             } else if (menu_on == 4u) {                                                                       /* Bluetooth: Sync, (Status), Sidechain, Patterns */
                 { static uint32_t bt_t; if (fm1_ms - bt_t > 300u) { bt_t = fm1_ms; redraw |= 7; } }
                 if (e) { int32_t v = (int32_t)bt_sel + (e > 0 ? 1 : -1); bt_sel = (uint32_t)(v < 0 ? 0 : v > 5 ? 5 : v); redraw |= 7; }
@@ -387,6 +406,10 @@ static void app_main(void)
                     redraw |= 7;
                 }
                 if (b & (1u << BTN_OCT_DOWN)) { menu_on = 1; redraw |= 7; }
+            } else if (menu_on == 5u) {                                                                       /* the lessons list: SELECT moves, OCT+ starts, OCT- goes back */
+                if (e) { int32_t v = (int32_t)les_pick + (e < -8 ? -8 : e > 8 ? 8 : e); les_pick = (uint32_t)(v < 0 ? 0 : v >= (int32_t)LES_N ? (int32_t)LES_N - 1 : v); redraw |= 7; }
+                if (b & (1u << BTN_OCT_UP)) { les_enter(les_pick, dirty); menu_on = 0; redraw |= 7; }
+                else if (b & (1u << BTN_OCT_DOWN)) { menu_on = 1; redraw |= 7; }
             } else if (menu_on == 2u) {
                 if (b & (1u << BTN_OCT_UP)) { factory_reset(); dirty = cfg_dirty = 0; menu_on = 0; redraw |= 7; }
                 else if (b & (1u << BTN_OCT_DOWN)) { menu_on = 1; redraw |= 7; }
@@ -578,7 +601,7 @@ static void app_main(void)
             if (b & (1u << BTN_OCT_DOWN) && cfg.oct > 0u) { cfg.oct--; cfg_dirty = 1; t_change = fm1_ms; }
             if (b & (1u << BTN_OCT_UP) && cfg.oct < 3u) { cfg.oct++; cfg_dirty = 1; t_change = fm1_ms; }
         }
-        if (b & (1u << BTN_SAVE)) { if (!seq_run) { slot_save(); if (cfg_dirty) settings_save(&cfg, sizeof cfg); dirty = cfg_dirty = 0; } }
+        if ((b & (1u << BTN_SAVE)) && !les_on) { if (!seq_run) { slot_save(); if (cfg_dirty) settings_save(&cfg, sizeof cfg); dirty = cfg_dirty = 0; } }
         e = fm1_enc_take(ENC_SELECT);
         if (e && view_now == V_FLY) { fly_deg += e; fly_deg = fly_deg < 0 ? 0 : fly_deg > 14 ? 14 : fly_deg; redraw |= 2; }
         else if (e && sel_now && (view_now == V_STEPS)) {                            /* SEL held: wrap the pattern along */
@@ -612,9 +635,8 @@ static void app_main(void)
             if (seq_step != fly_last_step) { if (seq_step == 0u || fly_last_step == 99u) foes_spawn(); fly_last_step = seq_step; }
         }
         if ((dirty || cfg_dirty) && !seq_run && fm1_ms - t_change > 2000u) {
-            if (dirty) slot_save();
-            if (cfg_dirty) settings_save(&cfg, sizeof cfg);
-            dirty = cfg_dirty = 0;
+            if (dirty && !les_on) { slot_save(); dirty = 0; }                                        /* (a lesson is never saved; the lessons you finished are) */
+            if (cfg_dirty) { settings_save(&cfg, sizeof cfg); cfg_dirty = 0; }
         }
         if (seq_run) {
             static uint32_t sd, sp, sc;
@@ -643,9 +665,9 @@ static void app_main(void)
                 fm1_led_glow(KEY_LED(k), glow); fm1_led_key(KEY_LED(k), lit);
             }
         }
-        if (fm1_ms >= weird_next && !tip_on) { weird_pick(); weird_next = fm1_ms + 10000u + rnd() % 18000u; }      /* something random every 10 to 28 s: little treats */
+        if (fm1_ms >= weird_next && !tip_on && !les_on) { weird_pick(); weird_next = fm1_ms + 10000u + rnd() % 18000u; }      /* something random every 10 to 28 s: little treats */
         if (tip_on) { if (fm1_ms - tip_t0 >= TIP_EVERY) { tip_open(); redraw |= 7; } }              /* the next tip, in the same window */
-        else if (!(cfg.pad[1] & QS_NOTIPS) && fm1_ms - act_ms > TIP_IDLE && !seq_run && !pfx_on && !fx_on && !pierre_on) { tip_open(); redraw |= 7; }
+        else if (!(cfg.pad[1] & QS_NOTIPS) && !les_on && fm1_ms - act_ms > TIP_IDLE && !seq_run && !pfx_on && !fx_on && !pierre_on) { tip_open(); redraw |= 7; }
         if (weird_active() && fm1_ms - last_draw > 45u) redraw |= 3;
         if (redraw && fm1_ms - last_draw >= 20u) {
             uint32_t ms = fm1_ms;

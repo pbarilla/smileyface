@@ -1,13 +1,22 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* The menu: GLO and HOME together (either first). Factory Reset, and Roll The Dice (every pattern of every project, random; it asks you to hold OCT+).
  * Included by smileyface.c after manual.c. */
+static const char *les_row(void);
 static uint32_t bt_sel;                                         /* the Bluetooth page: which of Sync, Sidechain, Patterns */
 static uint32_t menu_on, menu_sel, dice_t0, dice_prog, dice_armed;      /* menu_on: 1 the list, 2 Factory Reset?, 3 Roll The Dice? */
 #define DICE_MS 1500u
-#define MENU_ROWS 9u                                            /* (all of them; the Restore Demos row shows only while the demo is deleted: `menu_n()` rows, `menu_id()` maps a line to its row) */
-static uint32_t menu_n(void) { return demo_off ? MENU_ROWS : MENU_ROWS - 1u; }          /* the lines shown: Restore Demos only once the demo was deleted */
-static uint32_t menu_id(uint32_t i) { return !demo_off && i >= 6u ? i + 1u : i; }      /* a line's row: 0 Quick Start Always .. 5 Roll The Dice, 6 Restore Demos, 7 Factory Reset, 8 Pierre */
-/* the rows: Quick Start Always, Show Tips, Projects At Start, MIDI Clock, Brothers Link, Roll The Dice, Restore Demos, Factory Reset, Pierre */
+static uint32_t menu_grp;                                       /* 0 the top, 1 Settings, 2 Sync and Link, 3 Reset */
+/* a line's id: 0 Quick Start Always, 1 Show Tips, 2 Projects At Start, 3 MIDI Clock, 4 Brothers Link, 5 Roll The Dice, 6 Restore Demos (only while the demo is deleted), 7 Factory Reset, 8 Pierre, 9 Lessons, 20 Settings, 21 Sync and Link, 22 Reset */
+static const uint8_t MG_TOP[4] = {9, 20, 21, 22}, MG_SET[4] = {0, 1, 2, 8}, MG_SYNC[2] = {3, 4};
+static uint32_t menu_n(void) { return menu_grp == 0u ? 4u : menu_grp == 1u ? 4u : menu_grp == 2u ? 2u : demo_off ? 3u : 2u; }
+static uint32_t menu_id(uint32_t i)
+{
+    if (menu_grp == 0u) return MG_TOP[i];
+    if (menu_grp == 1u) return MG_SET[i];
+    if (menu_grp == 2u) return MG_SYNC[i];
+    if (i == 0u) return 5u;                                                              /* Reset: Roll The Dice, Restore Demos (if the demo was deleted), Factory Reset */
+    return demo_off && i == 1u ? 6u : 7u;
+}
 
 /* THE BLUETOOTH DEMO: a locked acid line to play with all three brothers (D minor, 124 BPM): pattern 1 the groove, pattern 2 the lift */
 static void bt_demo_load(void)
@@ -69,19 +78,21 @@ static void menu_win(const char *title, uint16_t col, int32_t h, int32_t y)
     text_at(x + 10, y + 5, title, C_K);
     cv_rect(x + 10, y + h - 27, w - 20, 1, C_RING);
 }
+static void scene_lessons(void);
 static void scene_menu(void)
 {
     const int32_t x = 6, w = 228, y = menu_on == 1u ? 18 : 36;
     uint32_t i;
+    if (menu_on == 5u) { scene_lessons(); return; }
     if (menu_on == 1u) {
-        const char *const IT[MENU_ROWS] = {cfg.pad[1] & QS_ALWAYS ? "Quick Start Always: Yes" : "Quick Start Always: No", cfg.pad[1] & QS_NOTIPS ? "Show Tips: No" : "Show Tips: Yes",
+        const char *const IT[23] = {cfg.pad[1] & QS_ALWAYS ? "Quick Start Always: Yes" : "Quick Start Always: No", cfg.pad[1] & QS_NOTIPS ? "Show Tips: No" : "Show Tips: Yes",
                                            cfg.pad[1] & QS_PICK ? "Projects At Start: Yes" : "Projects At Start: No",
-                                           cfg.clk == 1u ? "MIDI Clock: Send" : cfg.clk == 2u ? "MIDI Clock: Follow" : "MIDI Clock: Off", "Brothers Link", "Roll The Dice", slot0_busy ? "Restore: Slot 1 In Use" : "Restore Demos", "Factory Reset", "Pierre, 1985"};
-        const int32_t h = 212;
-        menu_win("Menu", C_Y, h, y);
+                                           cfg.clk == 1u ? "MIDI Clock: Send" : cfg.clk == 2u ? "MIDI Clock: Follow" : "MIDI Clock: Off", "Brothers Link", "Roll The Dice", slot0_busy ? "Restore: Slot 1 In Use" : "Restore Demos", "Factory Reset", "Pierre, 1985", les_row(), [20] = "Settings", [21] = "Sync and Link", [22] = "Reset"};
+        const int32_t h = (int32_t)menu_n() * 16 + 56;
+        menu_win(menu_grp == 0u ? "Menu" : menu_grp == 1u ? "Settings" : menu_grp == 2u ? "Sync and Link" : "Reset", C_Y, h, y);
         for (i = 0; i < menu_n(); i++) {
-            int32_t ly = y + 28 + (int32_t)i * 17;
-            if (i == menu_sel) { cv_rect(x + 8, ly - 3, w - 16, 17, RGB(60, 0, 40)); cv_rect(x + 8, ly - 3, 4, 17, C_PINK); }
+            int32_t ly = y + 28 + (int32_t)i * 16;
+            if (i == menu_sel) { cv_rect(x + 8, ly - 3, w - 16, 16, RGB(60, 0, 40)); cv_rect(x + 8, ly - 3, 4, 16, C_PINK); }
             text_at(x + 22, ly, IT[menu_id(i)], i == menu_sel ? C_W : C_RING);
         }
         text_at(x + 10, y + h - 21, "OCT+  Select", C_Y);

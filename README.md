@@ -11,6 +11,10 @@ Make some Acid on your FM-1!
 
 A simpleworkflow for making acid. Write a pattern (or smash that LFO button to roll the dice), and then twist the knobs.
 
+## Lessons
+
+GLO + HOME opens the menu; its first line starts one of 13 guided lessons.
+
 ## Links
 
 - [Homepage] (https://ihavenocluewhatimdoing.com/smileyface/)
@@ -25,7 +29,7 @@ Smileyface, [Chipbox](https://github.com/pbarilla/chipbox) and Drumlab can play 
 
 - Tempo, play and stop follow the leader. Followers start at the next bar.
 - Sidechain: the bass ducks on every kick the leader plays, then swells back. (Smileyface has no drums, so as a leader it sends no kicks.)
-- Patterns: when the leader changes pattern, Smileyface changes at the end of its loop. The leader's swing comes along.
+- Patterns: when the leader changes pattern, Smileyface changes at the end of its loop. A pattern with nothing in it is skipped. The leader's swing comes along.
 - Punch-in FX: hold pads 1 to 8 on the leader and the followers do it too.
 - Key: a following Smileyface moves its notes to the leader's key. A leading one tells the others its own.
 

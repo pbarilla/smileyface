@@ -11,7 +11,7 @@ static void wd_rings(void);
 static void vortex_floor(void);
 #define VORTEX_MS 45000u
 
-static struct { uint8_t slot, oct, view, magic, clk, pad[3]; } cfg;   /* the settings sector: where you were, and the MIDI clock (0 off, 1 send, 2 follow) */
+static struct { uint8_t slot, oct, view, magic, clk, pad[3], les[4]; } cfg;       /* les: the lessons you finished (the 8 and 10 byte sectors from before still load) */   /* the settings sector: where you were, and the MIDI clock (0 off, 1 send, 2 follow) */
 #define CLK_DEF 2u                                              /* it always followed an outside clock, so that stays */
 #define SET_OK 0xA6u
 #define DEMO_OK 0xD0u                                           /* cfg.pad[2]: the top nibble says the low bit is ours (older sectors have zero there: the demo is there); bit 0 = the demo was deleted */
