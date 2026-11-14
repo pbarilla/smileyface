@@ -54,3 +54,5 @@ Absolutely not. If you do choose to use the novel method for connecting 2+ FM-1s
 GPL-3.0-only, see `LICENSING.md`. Built on [Chipbox](https://github.com/pbarilla/chipbox), which is built on
 [Dinghy](https://github.com/zvenson/dinghy), which is built on [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita
 (Hügelton Instruments) with the changes of [SLOOP](https://github.com/isod89/sloop-fm1) (isod89).
+
+You can also try Smileyface in the browser, no flashing needed, in the free community [FM-1 Emulator](https://fm1-emulator.atst.tools/).
